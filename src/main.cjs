@@ -15,7 +15,6 @@ const {CAPTURE_SOURCE,normalizeCandidate}=require('./grade-capture.cjs');
 
 let db,launcher;
 const activeChildren=new Map();
-const authorizedStudents=new Set();
 const contentRoot=path.resolve(__dirname,'..','content');
 const pubPath=path.resolve(__dirname,'..','curriculum','teacher-public.pem');
 let teacherUnlocked=false,lastTeacherActivity=0,loginFailures=0,loginBlockedUntil=0,pendingCsv=null;
@@ -118,7 +117,6 @@ function register(){
     db.ensureStudent(studentId);
     db.addGrant(studentId,issuedFor,claim.nonce,claim.expiresAt);
    }
-   authorizedStudents.add(studentId);
    openAsset(found.abs,found.unit.id+' · '+found.unit.title,studentId,resourceId);
    return {ok:true};
   }catch(e){return {ok:false,error:String(e.message||e)}}
@@ -183,8 +181,18 @@ function register(){
   if(!sameLauncher(event))throw new Error('Acceso denegado');
   teacherUnlocked=false;pendingCsv=null;return {ok:true};
  });
- ipcMain.handle('student:exportReceipts',async(event,id)=>{
-   if(!sameLauncher(event)||!studentOK(id)||!authorizedStudents.has(id))throw new Error('El alumno debe abrir primero un recurso autorizado.');
+ ipcMain.handle('student:exportReceipts',async(event,payload)=>{
+   const {studentId:id,resourceId,code}=payload||{};
+   if(!sameLauncher(event)||!studentOK(id)||!findAsset(resourceId))throw new Error('Alumno o recurso inválido');
+   // Exportar datos exige volver a presentar un permiso firmado vigente del alumno.
+   // Evita que otro estudiante adivine su identificador y exporte sus entregas.
+   let target=resourceId;
+   try{
+     const p=JSON.parse(Buffer.from(String(code||'').split('.')[0],'base64url').toString('utf8'));
+     if(isLaunchPermission(resourceId,p.resourceId))target=p.resourceId;
+   }catch{}
+   const publicKey=fs.existsSync(pubPath)?fs.readFileSync(pubPath,'utf8'):'';
+   verifyPermission(code,publicKey,{studentId:id,resourceId:target});
    const receipts=db.exportStudentSubmissions(id);
    if(!receipts.length)throw new Error('No hay pruebas finalizadas recibidas para exportar.');
    const packet={type:'EPE-FP360-RECIBOS-1',exportedAt:new Date().toISOString(),studentId:id,receipts};
