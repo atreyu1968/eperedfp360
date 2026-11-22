@@ -44,11 +44,14 @@ function makeWindow(){
  launcher.webContents.on('will-navigate',e=>e.preventDefault());
  launcher.on('closed',()=>{teacherUnlocked=false});
 }
-function openAsset(abs,title){
+function openAsset(abs,title,studentId){
+ const partition='persist:epe-alumno-'+crypto.createHash('sha256').update(studentId).digest('hex').slice(0,24);
+ const studentSession=session.fromPartition(partition);
+ studentSession.setPermissionRequestHandler((_wc,_permission,cb)=>cb(false));
  const child=new BrowserWindow({width:1280,height:900,minWidth:900,minHeight:550,title,backgroundColor:'#f4f8fb',
-  webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true}});
+  webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true,partition}});
  child.webContents.setWindowOpenHandler(()=>({action:'deny'}));
- child.webContents.on('will-navigate',(event,url)=>{if(!url.startsWith('file://'))event.preventDefault()});
+ child.webContents.on('will-navigate',event=>event.preventDefault());
  child.loadFile(abs);child.show();
 }
 function sameLauncher(event){
@@ -80,7 +83,7 @@ function register(){
     db.ensureStudent(studentId);
     db.addGrant(studentId,resourceId,claim.nonce,claim.expiresAt);
    }
-   openAsset(found.abs,found.unit.id+' · '+found.unit.title);
+   openAsset(found.abs,found.unit.id+' · '+found.unit.title,studentId);
    return {ok:true};
   }catch(e){return {ok:false,error:String(e.message||e)}}
  });
