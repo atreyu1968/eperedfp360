@@ -15,7 +15,8 @@
 </section>
 <div id="alert" class="alert" hidden></div>
 <section class="two">
- <article class="panel"><h2>Identificación del alumno</h2><p class="small">Utiliza el mismo identificador durante todo el curso. Solo admite letras, números, puntos, guiones y guiones bajos.</p><label for="student">Identificador del alumno</label><input id="student" type="text" placeholder="Ejemplo: GA2-015" autocomplete="off" maxlength="64"><p class="small">El profesorado puede consultar y validar las calificaciones desde su panel protegido.</p></article>
+ <article class="panel"><h2>Identificación del alumno</h2><p class="small">Utiliza el mismo identificador durante todo el curso. Solo admite letras, números, puntos, guiones y guiones bajos.</p><label for="student">Identificador del alumno</label><input id="student" type="text" placeholder="Ejemplo: GA2-015" autocomplete="off" maxlength="64"><p class="small">Al finalizar el ejercicio, EPE FP360 recoge automáticamente sus resultados en este equipo. Para entregarlos a un profesor que utiliza otro ordenador, exporte el paquete de resultados.</p>
+<button id="studentExportReceipts" class="subtle" type="button">Guardar mis entregas para el profesor (JSON)</button></article>
  <article class="panel"><h2>Desbloqueo de actividad</h2><label for="resource">Portafolio o prueba objetiva</label><select id="resource"></select><label for="token">Código facilitado por el profesor</label><textarea id="token" rows="2" placeholder="Pegue aquí el código de autorización firmado"></textarea><button id="launch" class="primary">Abrir actividad autorizada</button><p id="key-status" class="small"></p></article>
 </section>
 <section><div class="section-head"><h2>Unidades didácticas</h2><span>Selecciona una unidad para consultar sus recursos</span></div><div id="units" class="units"></div></section>
@@ -82,6 +83,33 @@
   <button class="subtle" id="teacherCsvPreview" type="button">Seleccionar CSV y revisar las calificaciones</button>
   <div class="report" id="teacherCsvPreviewArea" hidden></div>
   <button class="primary" id="teacherCsvApprove" type="button" disabled>Validar e incorporar calificaciones revisadas</button>
+</article>
+<article class="inset token-block" id="inboxSection">
+ <h3>Bandeja de entregas recibidas</h3>
+ <p class="small">El sistema recopila las notas al finalizar portafolios y exámenes. Los resultados son <strong>propuestas sin firma de autoría</strong> y no modifican las calificaciones oficiales hasta que el profesor los valide. Los informes de portafolio no sustituyen la revisión de evidencias profesionales.</p>
+ <div class="teacher-bar">
+   <div><label for="teacherInboxFilter">Mostrar entregas</label>
+     <select id="teacherInboxFilter"><option value="pendiente">Pendientes de revisión</option><option value="todas">Todas las entregas</option><option value="aprobada">Validadas</option><option value="descartada">Descartadas</option></select>
+   </div>
+   <div class="inbox-buttons">
+     <button id="teacherInboxRefresh" type="button" class="subtle">Actualizar bandeja</button>
+     <button id="teacherInboxImport" type="button" class="subtle">Importar paquetes de varios alumnos</button>
+   </div>
+ </div>
+ <div id="teacherInboxList" class="report"></div>
+ <div id="teacherInboxReview" class="report" hidden>
+   <h3>Revisión de entrega</h3>
+   <p id="teacherInboxDetails" class="small"></p>
+   <div id="teacherInboxScores"></div>
+   <label for="teacherInboxMode">Modalidad que se validará</label>
+   <select id="teacherInboxMode"><option value="ordinaria">Evaluación ordinaria</option><option value="recuperacion">Recuperación</option></select>
+   <label for="teacherInboxNote">Observaciones docentes obligatorias para validar</label>
+   <textarea id="teacherInboxNote" rows="2" maxlength="1000" placeholder="Evidencias revisadas y observaciones"></textarea>
+   <div class="inbox-buttons">
+     <button id="teacherInboxApprove" type="button" class="primary">Validar las calificaciones de esta entrega</button>
+     <button id="teacherInboxDiscard" type="button" class="subtle">Descartar esta entrega</button>
+   </div>
+ </div>
 </article>
   <div id="teacherResults" class="report"></div>
  </div>
