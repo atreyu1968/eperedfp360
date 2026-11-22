@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {scopedId,candidateIds,taskMax,getResource}=require('../src/activity-permissions.cjs');
+const {scopedId,candidateIds,taskMax,getResource,isLaunchPermission}=require('../src/activity-permissions.cjs');
 test('permisos para 2.552 actividades',()=>{
  let total=0;
  for(let i=1;i<=7;i++){
@@ -29,4 +29,15 @@ test('no se permite emitir códigos imposibles',()=>{
  assert.throws(()=>scopedId('UD2-PORTAFOLIO','actividad','RA2.z',1),/Criterio/);
  assert.throws(()=>scopedId('UD1-EXAMEN-100','actividad','RA1.a',1),/portafolio/);
  assert.throws(()=>scopedId('desconocido','recurso'),/no encontrado/);
+});
+
+test('un código de criterio o actividad habilita apertura solo del portafolio pertinente',()=>{
+ assert.equal(isLaunchPermission('UD1-PORTAFOLIO','UD1-PORTAFOLIO'),true);
+ assert.equal(isLaunchPermission('UD1-PORTAFOLIO','UD1-PORTAFOLIO@ALL'),true);
+ assert.equal(isLaunchPermission('UD1-PORTAFOLIO','UD1-PORTAFOLIO@RA1.a'),true);
+ assert.equal(isLaunchPermission('UD1-PORTAFOLIO','UD1-PORTAFOLIO@RA1.f/060'),true);
+ assert.equal(isLaunchPermission('UD1-PORTAFOLIO','UD1-PORTAFOLIO@RA1.g/001'),false);
+ assert.equal(isLaunchPermission('UD1-PORTAFOLIO','UD1-PORTAFOLIO@RA1.a/061'),false);
+ assert.equal(isLaunchPermission('UD1-PORTAFOLIO','UD2-PORTAFOLIO@RA2.a/001'),false);
+ assert.equal(isLaunchPermission('UD1-EXAMEN-100','UD1-EXAMEN-100@RA1.a/001'),false);
 });
