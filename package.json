@@ -1,0 +1,51 @@
+{
+  "name": "epe-fp360-portable",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Empresa en el Aula - siete unidades, escritorio Windows portable",
+  "main": "src/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "import:content": "node scripts/import-content.mjs",
+    "build:win": "electron-builder --win portable --x64",
+    "test": "node --test tests/*.test.cjs"
+  },
+  "dependencies": {
+    "better-sqlite3": "13.2.0"
+  },
+  "devDependencies": {
+    "electron": "45.3.4",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "net.redfp360.epe",
+    "productName": "EPE FP360",
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**/*"
+    ],
+    "files": [
+      "src/**/*",
+      "curriculum/**/*",
+      "content/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "EPE-FP360-Portable-${version}.${ext}"
+    },
+    "extraMetadata": {
+      "name": "epe-fp360-portable"
+    }
+  }
+}

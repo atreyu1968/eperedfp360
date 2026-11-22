@@ -1,0 +1,253 @@
+{
+  "version": "2026-2027",
+  "module": "0446",
+  "course": "2.º CFGM Gestión Administrativa",
+  "region": "Canarias",
+  "units": [
+    {
+      "id": "UD1",
+      "ra": "RA1",
+      "title": "La empresa que vamos a crear",
+      "activities": 360,
+      "weights": [
+        15,
+        20,
+        15,
+        20,
+        10,
+        20
+      ],
+      "portfolio": {
+        "id": "UD1-PORTAFOLIO",
+        "kind": "portfolio",
+        "filename": "EPE_UD1_Portafolio_RA1_LOCAL_AMPLIADO.html"
+      },
+      "exams": [
+        {
+          "id": "UD1-EXAMEN-100",
+          "kind": "exam",
+          "filename": "EPE_UD1_Prueba_Objetiva_RA1_100_300_CON_CALCULADORA.html",
+          "questions": 100,
+          "pool": 300
+        },
+        {
+          "id": "UD1-EXAMEN-150",
+          "kind": "exam",
+          "filename": "EPE_UD1_Prueba_Objetiva_RA1_150_400_CON_CALCULADORA.html",
+          "questions": 150,
+          "pool": 400
+        }
+      ]
+    },
+    {
+      "id": "UD2",
+      "ra": "RA2",
+      "title": "Comunicación profesional",
+      "activities": 360,
+      "weights": [
+        15,
+        10,
+        15,
+        10,
+        10,
+        10,
+        15,
+        15
+      ],
+      "portfolio": {
+        "id": "UD2-PORTAFOLIO",
+        "kind": "portfolio",
+        "filename": "EPE_UD2_Portafolio_RA2_LOCAL_AMPLIADO.html"
+      },
+      "exams": [
+        {
+          "id": "UD2-EXAMEN-100",
+          "kind": "exam",
+          "filename": "EPE_UD2_Prueba_Objetiva_RA2_100_300_CON_CALCULADORA.html",
+          "questions": 100,
+          "pool": 300
+        },
+        {
+          "id": "UD2-EXAMEN-150",
+          "kind": "exam",
+          "filename": "EPE_UD2_Prueba_Objetiva_RA2_150_400_CON_CALCULADORA.html",
+          "questions": 150,
+          "pool": 400
+        }
+      ]
+    },
+    {
+      "id": "UD3",
+      "ra": "RA3",
+      "title": "Información, archivo, CRM y calidad",
+      "activities": 360,
+      "weights": [
+        15,
+        15,
+        15,
+        15,
+        20,
+        20
+      ],
+      "portfolio": {
+        "id": "UD3-PORTAFOLIO",
+        "kind": "portfolio",
+        "filename": "EPE_UD3_Portafolio_RA3_LOCAL_AMPLIADO.html"
+      },
+      "exams": [
+        {
+          "id": "UD3-EXAMEN-100",
+          "kind": "exam",
+          "filename": "EPE_UD3_Prueba_Objetiva_RA3_100_300_CON_CALCULADORA.html",
+          "questions": 100,
+          "pool": 300
+        },
+        {
+          "id": "UD3-EXAMEN-150",
+          "kind": "exam",
+          "filename": "EPE_UD3_Prueba_Objetiva_RA3_150_400_CON_CALCULADORA.html",
+          "questions": 150,
+          "pool": 400
+        }
+      ]
+    },
+    {
+      "id": "UD4",
+      "ra": "RA4",
+      "title": "Gestión administrativa de departamentos",
+      "activities": 392,
+      "weights": [
+        15,
+        15,
+        15,
+        15,
+        15,
+        10,
+        15
+      ],
+      "portfolio": {
+        "id": "UD4-PORTAFOLIO",
+        "kind": "portfolio",
+        "filename": "EPE_UD4_Portafolio_RA4_LOCAL_EXTENSO.html"
+      },
+      "exams": [
+        {
+          "id": "UD4-EXAMEN-150",
+          "kind": "exam",
+          "filename": "EPE_UD4_Prueba_Objetiva_RA4_150_de_500_LOCAL.html",
+          "questions": 150,
+          "pool": 500
+        }
+      ]
+    },
+    {
+      "id": "UD5",
+      "ra": "RA5",
+      "title": "Política comercial: compras y ventas",
+      "activities": 360,
+      "weights": [
+        15,
+        20,
+        15,
+        15,
+        15,
+        20
+      ],
+      "portfolio": {
+        "id": "UD5-PORTAFOLIO",
+        "kind": "portfolio",
+        "filename": "EPE_UD5_Portafolio_RA5_LOCAL_AMPLIADO.html"
+      },
+      "exams": [
+        {
+          "id": "UD5-EXAMEN-100",
+          "kind": "exam",
+          "filename": "EPE_UD5_Prueba_Objetiva_RA5_100_300_CON_CALCULADORA.html",
+          "questions": 100,
+          "pool": 300
+        },
+        {
+          "id": "UD5-EXAMEN-150",
+          "kind": "exam",
+          "filename": "EPE_UD5_Prueba_Objetiva_RA5_150_400_CON_CALCULADORA.html",
+          "questions": 150,
+          "pool": 400
+        }
+      ]
+    },
+    {
+      "id": "UD6",
+      "ra": "RA6",
+      "title": "Incidencias y reclamaciones",
+      "activities": 360,
+      "weights": [
+        15,
+        15,
+        15,
+        20,
+        20,
+        15
+      ],
+      "portfolio": {
+        "id": "UD6-PORTAFOLIO",
+        "kind": "portfolio",
+        "filename": "EPE_UD6_Portafolio_RA6_LOCAL_AMPLIADO.html"
+      },
+      "exams": [
+        {
+          "id": "UD6-EXAMEN-100",
+          "kind": "exam",
+          "filename": "EPE_UD6_Prueba_Objetiva_RA6_100_300_CON_CALCULADORA.html",
+          "questions": 100,
+          "pool": 300
+        },
+        {
+          "id": "UD6-EXAMEN-150",
+          "kind": "exam",
+          "filename": "EPE_UD6_Prueba_Objetiva_RA6_150_400_CON_CALCULADORA.html",
+          "questions": 150,
+          "pool": 400
+        }
+      ]
+    },
+    {
+      "id": "UD7",
+      "ra": "RA7",
+      "title": "Trabajo en equipo",
+      "activities": 360,
+      "weights": [
+        10,
+        8,
+        10,
+        10,
+        10,
+        10,
+        10,
+        12,
+        10,
+        10
+      ],
+      "portfolio": {
+        "id": "UD7-PORTAFOLIO",
+        "kind": "portfolio",
+        "filename": "EPE_UD7_Portafolio_RA7_LOCAL_AMPLIADO.html"
+      },
+      "exams": [
+        {
+          "id": "UD7-EXAMEN-100",
+          "kind": "exam",
+          "filename": "EPE_UD7_Prueba_Objetiva_RA7_100_300_CON_CALCULADORA.html",
+          "questions": 100,
+          "pool": 300
+        },
+        {
+          "id": "UD7-EXAMEN-150",
+          "kind": "exam",
+          "filename": "EPE_UD7_Prueba_Objetiva_RA7_150_400_CON_CALCULADORA.html",
+          "questions": 150,
+          "pool": 400
+        }
+      ]
+    }
+  ]
+}
