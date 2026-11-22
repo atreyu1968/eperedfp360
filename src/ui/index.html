@@ -15,10 +15,58 @@
 </section>
 <div id="alert" class="alert" hidden></div>
 <section class="two">
- <article class="panel"><h2>Identificación del alumno</h2><p class="small">Utiliza el mismo identificador durante todo el curso. Solo admite letras, números, puntos, guiones y guiones bajos.</p><label for="student">Identificador del alumno</label><input id="student" type="text" placeholder="Ejemplo: GA2-015" autocomplete="off" maxlength="64"><button id="summary" class="subtle">Consultar criterios</button></article>
+ <article class="panel"><h2>Identificación del alumno</h2><p class="small">Utiliza el mismo identificador durante todo el curso. Solo admite letras, números, puntos, guiones y guiones bajos.</p><label for="student">Identificador del alumno</label><input id="student" type="text" placeholder="Ejemplo: GA2-015" autocomplete="off" maxlength="64"><p class="small">El profesorado puede consultar y validar las calificaciones desde su panel protegido.</p></article>
  <article class="panel"><h2>Desbloqueo de actividad</h2><label for="resource">Portafolio o prueba objetiva</label><select id="resource"></select><label for="token">Código facilitado por el profesor</label><textarea id="token" rows="2" placeholder="Pegue aquí el código de autorización firmado"></textarea><button id="launch" class="primary">Abrir actividad autorizada</button><p id="key-status" class="small"></p></article>
 </section>
 <section><div class="section-head"><h2>Unidades didácticas</h2><span>Selecciona una unidad para consultar sus recursos</span></div><div id="units" class="units"></div></section>
+<section class="panel teacher-section" id="teacherPanel">
+ <div class="section-head"><h2>Panel del profesorado</h2><span>Acceso protegido · resultados y recuperaciones</span></div>
+ <div id="teacherAuthArea">
+  <p id="teacherAuthMsg" class="small">Indique la contraseña del profesor para acceder a las calificaciones y códigos.</p>
+  <label for="teacherPass">Contraseña docente</label><input id="teacherPass" type="password" maxlength="256" autocomplete="off">
+  <button id="teacherAuth" class="primary" type="button">Acceder como profesor</button>
+ </div>
+ <div id="teacherWork" hidden>
+  <div class="teacher-bar"><p class="small">Sesión docente activa · Cierre automático por inactividad tras 20 minutos.</p><button id="teacherLogout" type="button" class="subtle">Cerrar sesión docente</button></div>
+  <div class="two">
+   <article class="inset">
+    <h3>Seguimiento y recuperación</h3>
+    <label for="teacherStudent">Identificador del alumno</label><input id="teacherStudent" placeholder="GA2-015" maxlength="64" spellcheck="false">
+    <button class="subtle" id="teacherSummary" type="button">Consultar RA y CE</button>
+    <label for="teacherRA">RA para recuperación</label><select id="teacherRA"></select>
+    <label for="teacherActivities">Actividades orientativas por criterio</label><input id="teacherActivities" type="number" value="20" min="1" max="200">
+    <label for="teacherRecoveryNote">Instrucciones docentes</label><textarea id="teacherRecoveryNote" rows="2" maxlength="1000" placeholder="Refuerzo, caso práctico y evidencia exigida"></textarea>
+    <button id="teacherAssign" type="button" class="subtle">Asignar criterios pendientes del RA</button>
+   </article>
+   <article class="inset">
+    <h3>Validación de calificación</h3>
+    <label for="teacherCE">Criterio</label><select id="teacherCE"></select>
+    <label for="teacherGrade">Calificación validada (0–10)</label><input id="teacherGrade" type="number" min="0" max="10" step=".01" placeholder="Ej. 7,50">
+    <label for="teacherInstrument">Instrumento</label><select id="teacherInstrument">
+     <option value="calificacion_final_ce">Calificación global del criterio</option>
+     <option value="portafolio">Portafolio</option>
+     <option value="prueba_objetiva">Prueba objetiva</option>
+     <option value="observacion">Observación</option>
+     <option value="rubrica">Rúbrica profesional</option>
+    </select>
+    <label for="teacherMode">Evaluación</label><select id="teacherMode"><option value="ordinaria">Ordinaria</option><option value="recuperacion">Recuperación</option></select>
+    <label for="teacherNote">Observaciones</label><textarea id="teacherNote" rows="2" maxlength="2000"></textarea>
+    <button class="primary" id="teacherSaveGrade" type="button">Guardar nota validada</button>
+   </article>
+  </div>
+  <article class="inset token-block">
+   <h3>Emitir autorización firmada para un recurso</h3>
+   <p class="small">El profesor selecciona una clave privada PEM cifrada de forma local. La clave no se almacena en la aplicación ni se distribuye al alumno. La autorización permite abrir el recurso completo, no una actividad individual interna.</p>
+   <div class="two compact">
+    <div><label for="teacherHours">Vigencia en horas</label><input id="teacherHours" type="number" min="1" max="720" value="48"></div>
+    <div><label for="teacherKeyPass">Contraseña de la clave privada</label><input id="teacherKeyPass" type="password" autocomplete="off"></div>
+   </div>
+   <button id="teacherCreateCode" type="button" class="subtle">Seleccionar clave y generar código</button>
+   <label for="teacherIssuedCode">Código emitido</label><textarea id="teacherIssuedCode" rows="3" readonly placeholder="Se mostrará aquí tras emitir la autorización"></textarea>
+  </article>
+  <div id="teacherResults" class="report"></div>
+ </div>
+</section>
 <section class="panel report" id="results" hidden><h2>Seguimiento individual por RA y CE</h2><p class="small">Las calificaciones requieren validación del profesorado; la ausencia de registro no implica una nota de cero.</p><div id="report"></div></section>
 <footer>Versión inicial de integración. Los contenidos se incorporan mediante el importador; la supervisión docente sigue siendo necesaria.</footer>
 </main>
