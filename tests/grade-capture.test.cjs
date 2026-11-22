@@ -38,3 +38,15 @@ test('valida el número de criterios y la nota',()=>{
  data.scores[0].score=15;
  assert.throws(()=>normalizeCandidate(data,'GA2-015','UD5-PORTAFOLIO'),/Nota/);
 });
+
+test('UD3 examen de 150 preguntas genera identificador desde semilla e inicio',()=>{
+ const ctx={
+  state:{finished:true,seed:384210,startedAt:'2026-11-22T12:00:00.000Z',
+   finishedAt:'2026-11-22T12:30:00.000Z',
+   student:{name:'Alumno 3',id:'GA2-015'}},
+  grades:()=>({byCE:Object.fromEntries('abcdef'.split('').map(l=>['3.'+l,{score:6.5}]))})
+ };
+ const raw=vm.runInNewContext(CAPTURE_SOURCE,ctx);
+ assert.ok(raw.sessionId.startsWith('RA3-384210-'));
+ assert.equal(normalizeCandidate(raw,'GA2-015','UD3-EXAMEN-150').scores.length,6);
+});
