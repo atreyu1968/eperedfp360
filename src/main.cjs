@@ -11,9 +11,11 @@ const {createCredential,verifyCredential}=require('./teacher-auth.cjs');
 const {verifyPermission}=require('./security.cjs');
 const {scopedId,candidateIds,isLaunchPermission}=require('./activity-permissions.cjs');
 const {parseGradesCsv}=require('./report-import.cjs');
+const {CAPTURE_SOURCE,normalizeCandidate}=require('./grade-capture.cjs');
 
 let db,launcher;
 const activeChildren=new Map();
+const authorizedStudents=new Set();
 const contentRoot=path.resolve(__dirname,'..','content');
 const pubPath=path.resolve(__dirname,'..','curriculum','teacher-public.pem');
 let teacherUnlocked=false,lastTeacherActivity=0,loginFailures=0,loginBlockedUntil=0,pendingCsv=null;
@@ -55,7 +57,30 @@ function openAsset(abs,title,studentId,resourceId){
  child.webContents.setWindowOpenHandler(()=>({action:'deny'}));
  child.webContents.on('will-navigate',event=>event.preventDefault());
  activeChildren.set(child.webContents.id,{studentId,resourceId});
- child.on('closed',()=>activeChildren.delete(child.webContents.id));
+ let poller=null,polling=false,received=false;
+ const poll=async()=>{
+  if(received||polling||child.isDestroyed()||child.webContents.isDestroyed())return;
+  polling=true;
+  try{
+   // Extracción de notas únicamente DESPUÉS del cierre de cada HTML original.
+   const raw=await child.webContents.executeJavaScript(CAPTURE_SOURCE,true);
+   if(!raw || raw.error)return;
+   const record=normalizeCandidate(raw,studentId,resourceId);
+   const outcome=db.receiveSubmission(record);
+   if(outcome.created)console.log('EPE FP360: entrega recibida para revisión',record.ra,record.resourceId);
+   received=true;
+   if(poller)clearInterval(poller);
+  }catch(e){
+   // El HTML puede estar restaurando una copia de seguridad o aún sin finalizar.
+   // Un fallo de extracción nunca cambia notas oficiales ni cierra la actividad.
+   if(process.env.EPE_VERBOSE==='1')console.warn('Captura pendiente:',e.message);
+  }finally{polling=false}
+ };
+ child.webContents.once('did-finish-load',()=>{
+   poller=setInterval(poll,4000);
+   poll();
+ });
+ child.on('closed',()=>{if(poller)clearInterval(poller);activeChildren.delete(child.webContents.id)});
  child.loadFile(abs);child.show();
 }
 function sameLauncher(event){
@@ -93,6 +118,7 @@ function register(){
     db.ensureStudent(studentId);
     db.addGrant(studentId,issuedFor,claim.nonce,claim.expiresAt);
    }
+   authorizedStudents.add(studentId);
    openAsset(found.abs,found.unit.id+' · '+found.unit.title,studentId,resourceId);
    return {ok:true};
   }catch(e){return {ok:false,error:String(e.message||e)}}
@@ -156,6 +182,58 @@ function register(){
  ipcMain.handle('teacher:logout',event=>{
   if(!sameLauncher(event))throw new Error('Acceso denegado');
   teacherUnlocked=false;pendingCsv=null;return {ok:true};
+ });
+ ipcMain.handle('student:exportReceipts',async(event,id)=>{
+   if(!sameLauncher(event)||!studentOK(id)||!authorizedStudents.has(id))throw new Error('El alumno debe abrir primero un recurso autorizado.');
+   const receipts=db.exportStudentSubmissions(id);
+   if(!receipts.length)throw new Error('No hay pruebas finalizadas recibidas para exportar.');
+   const packet={type:'EPE-FP360-RECIBOS-1',exportedAt:new Date().toISOString(),studentId:id,receipts};
+   const filename='EPE_FP360_ENTREGAS_'+id+'_'+new Date().toISOString().slice(0,10)+'.json';
+   const save=await dialog.showSaveDialog(launcher,{
+    title:'Guardar entregas para el profesor',defaultPath:path.join(app.getPath('documents'),filename),
+    filters:[{name:'Paquete EPE de entregas',extensions:['json']}]});
+   if(save.canceled||!save.filePath)return {ok:false,cancelled:true};
+   fs.writeFileSync(save.filePath,JSON.stringify(packet,null,2),{encoding:'utf8',flag:'w',mode:0o600});
+   return {ok:true,count:receipts.length,path:save.filePath};
+ });
+ ipcMain.handle('teacher:inbox',(event,status='pendiente')=>{
+   requiresTeacher(event);
+   if(!['pendiente','todas','aprobada','descartada'].includes(status))throw new Error('Filtro de bandeja inválido');
+   return {ok:true,items:db.listSubmissions(status)};
+ });
+ ipcMain.handle('teacher:reviewReceipt',(event,payload)=>{
+   requiresTeacher(event);
+   const {id,decision,mode='ordinaria',note=''}=payload||{};
+   if(!Number.isSafeInteger(id)||id<1||typeof note!=='string'||note.length>1000)throw new Error('Revisión inválida');
+   return {ok:true,...db.reviewSubmission(id,decision,mode,note)};
+ });
+ ipcMain.handle('teacher:importReceipts',async(event)=>{
+   requiresTeacher(event);
+   const choose=await dialog.showOpenDialog(launcher,{title:'Importar entregas de equipos del alumnado',
+     properties:['openFile','multiSelections'],filters:[{name:'Paquetes de entregas',extensions:['json']}]});
+   requiresTeacher(event);
+   if(choose.canceled)return {ok:false,cancelled:true};
+   if(choose.filePaths.length>100)throw new Error('Importe un máximo de 100 paquetes por operación');
+   let imported=0,duplicates=0,errors=[];
+   for(const file of choose.filePaths){
+    try{
+     if(fs.statSync(file).size>1000000)throw new Error('Archivo demasiado grande');
+     const packet=JSON.parse(fs.readFileSync(file,'utf8'));
+     if(packet.type!=='EPE-FP360-RECIBOS-1'||!studentOK(packet.studentId)
+       ||!Array.isArray(packet.receipts)||packet.receipts.length>100)throw new Error('Formato de paquete inválido');
+     for(const raw of packet.receipts){
+       // El paquete no acredita autoría. Se valida y queda PENDIENTE del profesor.
+       if(raw.studentId!==packet.studentId)throw new Error('Alumno del paquete incoherente');
+       const normalized=normalizeCandidate({
+         version:1,variant:'grade',sessionId:raw.sessionId,finalizedAt:raw.finalizedAt,
+         claimedName:raw.claimedName,claimedStudent:raw.claimedStudent,scores:raw.scores
+       },raw.studentId,raw.resourceId);
+       const result=db.receiveSubmission(normalized);
+       if(result.created)imported++;else duplicates++;
+     }
+    }catch(e){errors.push(path.basename(file)+': '+e.message)}
+   }
+   return {ok:true,imported,duplicates,errors};
  });
  ipcMain.handle('teacher:summary',(event,id)=>{
   requiresTeacher(event);
