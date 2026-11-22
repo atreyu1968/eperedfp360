@@ -18,6 +18,24 @@ function buildResourceSelect(u){
   (r.kind==='portfolio'?'Portafolio':'Prueba objetiva · '+r.questions+' preguntas')+(r.available?'':' · aún sin importar')]));
  selection=u.id;
 }
+function updateTeacherScope(){
+ const id=$id('resource').value;
+ const u=units.find(x=>resources(x).some(r=>r.id===id));
+ const item=u?resources(u).find(r=>r.id===id):null;
+ if(!u||!item)return;
+ const isPortfolio=item.kind==='portfolio';
+ const scope=$id('teacherScope');
+ for(const option of scope.options)option.disabled=!isPortfolio&&option.value!=='recurso';
+ if(!isPortfolio&&scope.value!=='recurso')scope.value='recurso';
+ fillSelect($id('teacherScopeCE'),u.weights.map((_,i)=>{
+  const ce=u.ra+'.'+String.fromCharCode(97+i);return [ce,ce];
+ }));
+ const per=u.activities/u.weights.length;
+ $id('teacherScopeIndex').max=String(per);
+ if(Number($id('teacherScopeIndex').value)>per)$id('teacherScopeIndex').value=String(per);
+ $id('teacherScopeCE').disabled=!['criterio','actividad'].includes(scope.value);
+ $id('teacherScopeIndex').disabled=scope.value!=='actividad';
+}
 function renderUnits(){
  const host=$id('units');host.replaceChildren();
  for(const u of units){
@@ -30,7 +48,7 @@ function renderUnits(){
   const status=document.createElement('span');status.className='status'+(ready===resources(u).length?' ready':'');
   status.textContent=ready+'/'+resources(u).length+' recursos importados';
   button.append(id,h,p,status);
-  button.addEventListener('click',()=>{buildResourceSelect(u);renderUnits()});
+  button.addEventListener('click',()=>{buildResourceSelect(u);updateTeacherScope();renderUnits()});
   host.append(button);
  }
 }
@@ -145,12 +163,14 @@ async function createCode(){
   const result=await window.epe.teacherIssue({
    studentId:$id('teacherStudent').value.trim(),
    resourceId:$id('resource').value,
-   hours:Number($id('teacherHours').value),passphrase:secret
+   hours:Number($id('teacherHours').value),passphrase:secret,
+   scope:$id('teacherScope').value,ce:$id('teacherScopeCE').value,
+   activity:Number($id('teacherScopeIndex').value)
   });
   $id('teacherKeyPass').value='';
   if(result.cancelled)return;
   $id('teacherIssuedCode').value=result.code;
-  alertUser('Autorización emitida hasta '+new Date(result.expiresAt).toLocaleString('es-ES')+'.',true);
+  alertUser('Permiso '+result.scopeResource+' emitido hasta '+new Date(result.expiresAt).toLocaleString('es-ES')+'.',true);
  }catch(e){$id('teacherKeyPass').value='';alertUser('No se pudo emitir el código: '+e.message)}
 }
 let csvPreview=null;
@@ -201,10 +221,12 @@ async function init(){
    ?'Clave pública de autorizaciones configurada.'
    :'No se ha incorporado la clave pública del profesor. Los códigos aún no se podrán validar.';
   if(units.length)buildResourceSelect(units[0]);
-  renderUnits();fillCriteria();await updateTeacherStatus();
+  renderUnits();fillCriteria();updateTeacherScope();await updateTeacherStatus();
  }catch(e){alertUser('No se pudo iniciar la aplicación: '+e.message)}
 }
 $id('launch').addEventListener('click',studentLaunch);
+$id('resource').addEventListener('change',updateTeacherScope);
+$id('teacherScope').addEventListener('change',updateTeacherScope);
 $id('teacherAuth').addEventListener('click',authenticateTeacher);
 $id('teacherLogout').addEventListener('click',async()=>{
  await window.epe.teacherLogout();teacherUnlocked=false;showTeacher();$id('teacherResults').replaceChildren();
