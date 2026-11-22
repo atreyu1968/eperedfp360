@@ -65,3 +65,16 @@ Los portafolios cuentan con un adaptador que detecta la actividad visible y mues
 La aplicación presenta una casilla para pegar el código cuando una actividad está bloqueada. Los códigos firmados son largos deliberadamente; no son simples PIN de seis dígitos, ya que el alumno podría deducirlos o falsificarlos si compartieran una clave secreta incrustada en el ejecutable.
 
 **Límites actuales:** el bloqueo sucede en la interfaz Electron cuando el alumno usa el lanzador; no impide inspeccionar un HTML local ni modificar un archivo en un equipo sin supervisión. La integridad de respuestas y la imposibilidad de repetición entre ordenadores requieren una solución centralizada o mecanismos de evaluación supervisada.
+
+## Compilación guiada en Windows (ZIP con las 20 aplicaciones)
+
+En Windows 10/11 con Node.js 24 instalado, desde la raíz del repositorio:
+
+- Con clave pública existente: 
+  powershell -ExecutionPolicy Bypass -File .\scripts\compilar-portable-windows.ps1 -ContenidoZip C:\Descargas\EPE_FP360_20_APLICACIONES_ALUMNADO_IMPORTACION.zip -ClavePublica C:\Docente\teacher-public.pem
+- Para generar un nuevo par de claves docentes, sin contraseña previa:
+  powershell -ExecutionPolicy Bypass -File .\scripts\compilar-portable-windows.ps1 -ContenidoZip C:\Descargas\EPE_FP360_20_APLICACIONES_ALUMNADO_IMPORTACION.zip -GenerarClaves
+
+El script extrae el ZIP en una carpeta temporal, verifica e importa los 20 HTML, comprueba los 49 criterios y los adaptadores, reconstruye SQLite y ejecuta electron-builder para producir el EXE en la carpeta dist/.
+
+**Advertencias:** nunca distribuir teacher-secrets/private.pem ni cargar ese archivo en GitHub. La copia portable de los contenidos contiene respuestas internas porque los HTML originales son autocorregibles. El EXE no está firmado comercialmente. El script de PowerShell se ha incorporado al repositorio y necesita comprobación funcional específica en un Windows real.
