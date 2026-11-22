@@ -34,9 +34,21 @@ function scopedId(base,scope='recurso',ce=null,number=null){
  }
  throw new Error('Ámbito de autorización desconocido');
 }
+function isLaunchPermission(base,candidate){
+ const entry=getResource(base);
+ if(!entry||typeof candidate!=='string')return false;
+ if(candidate===base)return true;
+ if(entry.item.kind!=='portfolio')return false;
+ if(candidate===scopedId(base,'portafolio'))return true;
+ const m=/^(RA[1-7]\.[a-j])(?:\/(\d{3}))?$/.exec(candidate.slice(base.length+1));
+ if(!candidate.startsWith(base+'@')||!m)return false;
+ try{
+  return candidate===scopedId(base,m[2]?'actividad':'criterio',m[1],m[2]?Number(m[2]):null);
+ }catch{return false}
+}
 function candidateIds(base,ce,number){
  const entry=getResource(base);
  if(!entry||entry.item.kind!=='portfolio')throw new Error('Portafolio no reconocido');
  return [scopedId(base,'portafolio'),scopedId(base,'criterio',ce),scopedId(base,'actividad',ce,number)];
 }
-module.exports={getResource,criterionId,isCriterionFor,taskMax,scopedId,candidateIds};
+module.exports={getResource,criterionId,isCriterionFor,taskMax,scopedId,candidateIds,isLaunchPermission};
