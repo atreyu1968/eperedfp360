@@ -56,8 +56,20 @@
   </div>
   <article class="inset token-block">
    <h3>Emitir autorización firmada para un recurso</h3>
-   <p class="small">El profesor selecciona una clave privada PEM cifrada de forma local. La clave no se almacena en la aplicación ni se distribuye al alumno. La autorización permite abrir el recurso completo, no una actividad individual interna.</p>
+   <p class="small">El profesor selecciona una clave privada PEM cifrada de forma local. La clave no se almacena en la aplicación ni se distribuye al alumno. Puede emitir permisos de apertura, de portafolio completo, por criterio o por actividad. Son permisos locales disuasorios; no garantizan que el HTML no pueda abrirse fuera de este programa.</p>
    <div class="two compact">
+    <div><label for="teacherScope">Ámbito del desbloqueo</label>
+      <select id="teacherScope">
+       <option value="recurso">Abrir recurso (obligatorio antes del primer acceso)</option>
+       <option value="portafolio">Todas las actividades del portafolio</option>
+       <option value="criterio">Todas las actividades de un criterio</option>
+       <option value="actividad">Una actividad individual</option>
+      </select>
+    </div>
+    <div><label for="teacherScopeCE">Criterio de evaluación</label><select id="teacherScopeCE"></select></div>
+   </div>
+   <div class="two compact">
+    <div><label for="teacherScopeIndex">Número de actividad dentro del criterio</label><input id="teacherScopeIndex" type="number" min="1" value="1"></div>
     <div><label for="teacherHours">Vigencia en horas</label><input id="teacherHours" type="number" min="1" max="720" value="48"></div>
     <div><label for="teacherKeyPass">Contraseña de la clave privada</label><input id="teacherKeyPass" type="password" autocomplete="off"></div>
    </div>
