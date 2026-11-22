@@ -17,7 +17,9 @@ jobs:
           node-version: "24"
       - name: Instalar dependencias
         run: npm install --no-audit
-      - name: Probar SQLite con Node.js antes de reconstrucción Electron
+      - name: Comprobar SQLite nativo antes de reconstrucción Electron
+        run: node -e "const Database=require('better-sqlite3');const db=new Database(':memory:');db.prepare('SELECT 1').get();db.close()"
+      - name: Probar bandeja SQLite y recepción de calificaciones
         run: node --test tests/submissions-sqlite.test.cjs
       - name: Reconstruir SQLite para Electron
         run: npx electron-builder install-app-deps
@@ -26,6 +28,8 @@ jobs:
           node --check src/activity-preload.cjs
           node --check src/activity-permissions.cjs
           node --check src/main.cjs
+          node --check src/grade-capture.cjs
+          node --check src/ui/app.js
       - name: Pruebas
         run: npm test
       - name: Compilar portable
