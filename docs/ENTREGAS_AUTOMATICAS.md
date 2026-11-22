@@ -9,7 +9,7 @@
 3. Trabajar normalmente: el HTML original realiza el guardado local y la autocorrección.
 4. **Al finalizar y cerrar el intento dentro del HTML**, EPE FP360 consulta las notas de CE y registra una **propuesta pendiente** en la base SQLite. No reescribe el HTML, no modifica la fórmula original ni atribuye autenticidad criptográfica a la entrega.
 5. Si el profesor trabaja en ese mismo ordenador y con la misma base local, encontrará la entrega directamente en su bandeja.
-6. Si el profesor está en otro ordenador, utilizar el botón «Guardar mis entregas para el profesor (JSON)», entregar el archivo resultante y conservar copia. El paquete reúne las entregas detectadas de ese alumno.
+6. Si el profesor está en otro ordenador, volver a introducir un código docente firmado y vigente del propio alumno y utilizar el botón «Guardar mis entregas para el profesor (JSON)»; entregar el archivo resultante y conservar copia. El paquete reúne las entregas detectadas de ese alumno.
 
 La aplicación no puede enviar datos espontáneamente de un ordenador sin conexión a otro: **el intercambio offline necesita mover el archivo JSON** mediante una memoria USB o un recurso autorizado del centro.
 
@@ -44,7 +44,7 @@ El paquete transportable JSON incluye **propuestas**, no contraseña docente ni 
 - La fecha del dispositivo y la corrección original pueden manipularse. La validación del profesor es obligatoria.
 - Se comprueba que cada entrega corresponde a uno de los 20 recursos, tiene la cantidad correcta de criterios, calificaciones entre 0 y 10 y fechas válidas.
 - Se rechazan sesiones duplicadas mediante la combinación alumno + recurso + sesión.
-- No se mezclan automáticamente los perfiles de distintos alumnos en la misma instalación.
+- No se mezclan automáticamente los perfiles de distintos alumnos en la misma instalación. Para exportar el paquete individual es obligatorio acreditar el acceso con un código firmado vigente del alumno; conocer únicamente su identificador no permite exportar sus datos.
 - No debe publicarse un paquete de entregas en repositorios abiertos, por tratarse de datos personales del alumnado.
 - El módulo NO da por superado un criterio del RA7 sin revisar las evidencias profesionales de trabajo en equipo.
 
