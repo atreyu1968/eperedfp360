@@ -2,6 +2,10 @@ name: EPE FP360 · Windows COMPLETO con 7 unidades
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'assets/EPE_FP360_20_APLICACIONES_ALUMNADO_IMPORTACION.zip'
 
 permissions:
   contents: read
