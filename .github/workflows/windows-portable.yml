@@ -17,6 +17,8 @@ jobs:
           node-version: "24"
       - name: Instalar dependencias
         run: npm install --no-audit
+      - name: Probar SQLite con Node.js antes de reconstrucción Electron
+        run: node --test tests/submissions-sqlite.test.cjs
       - name: Reconstruir SQLite para Electron
         run: npx electron-builder install-app-deps
       - name: Validar integración de bloqueo por actividad
