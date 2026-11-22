@@ -7,7 +7,7 @@ const manifest=require('../curriculum/manifest.json');
 const {openDatabase}=require('./database.cjs');
 const {evaluateRA}=require('./evaluation.cjs');
 const {createRecoveryPlan,validateCriterion}=require('./recovery.cjs');
-const {createCredential,verifyCredential}=require('./teacher-auth.cjs');
+const {createCredential,verifyCredential,verifyTeacherActivation}=require('./teacher-auth.cjs');
 const {verifyPermission}=require('./security.cjs');
 const {scopedId,candidateIds,isLaunchPermission}=require('./activity-permissions.cjs');
 const {parseGradesCsv}=require('./report-import.cjs');
@@ -157,10 +157,15 @@ function register(){
   if(Date.now()-lastTeacherActivity>TEACHER_IDLE)teacherUnlocked=false;
   return {configured:!!db.getTeacherCredential(),unlocked:teacherUnlocked};
  });
- ipcMain.handle('teacher:setup',(event,password)=>{
+ ipcMain.handle('teacher:setup',(event,payload)=>{
   if(!sameLauncher(event))throw new Error('Acceso denegado');
   if(db.getTeacherCredential())throw new Error('El perfil docente ya está configurado.');
-  db.setTeacherCredential(createCredential(password));
+  if(!fs.existsSync(pubPath))throw new Error('La aplicación no dispone de la clave pública docente.');
+  if(!verifyTeacherActivation(payload?.activationSecret,fs.readFileSync(pubPath,'utf8'))){
+    throw new Error('La clave maestra no coincide con la identidad docente de esta compilación.');
+  }
+  const credential=createCredential(payload?.password);
+  db.setTeacherCredential(credential);
   teacherUnlocked=true;lastTeacherActivity=Date.now();
   return {ok:true};
  });
