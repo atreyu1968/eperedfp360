@@ -41,6 +41,11 @@ function visibleTask(){
  }
  return null;
 }
+function repositionOverlay(){
+ if(!root)return;
+ const host=document.fullscreenElement||document.documentElement;
+ if(root.parentElement!==host)host.append(root);
+}
 function createUi(){
  if(root)return;
  root=document.createElement('div');
@@ -76,6 +81,7 @@ function createUi(){
  panel.append(icon,title,info,label,field,action,notice,foot);
  root.append(panel);
  document.documentElement.append(root);
+ document.addEventListener('fullscreenchange',()=>{repositionOverlay();requestObservation()});
  action.addEventListener('click',async()=>{
   const key=currentKey,code=field.value.trim();
   if(!key||!code){notice.textContent='Introduzca el código de autorización.';return}
@@ -91,6 +97,7 @@ function createUi(){
 }
 function lock(task){
  if(!root)createUi();
+ repositionOverlay();
  if(!task){root.style.display='none';lastBlocked=false;return}
  root.style.display='flex';lastBlocked=true;
  info.textContent=task.ce+' · '+task.title+'. El profesor debe autorizar esta actividad antes de continuar.';
@@ -123,7 +130,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  createUi();
  // Las aplicaciones renderizan cada actividad reemplazando partes del DOM.
  const observer=new MutationObserver(records=>{
-  if(records.some(rec=>rec.target===root||root.contains(rec.target)))return;
+  if(records.every(rec=>rec.target===root||root.contains(rec.target)))return;
   requestObservation();
  });
  observer.observe(document.body,{subtree:true,childList:true,characterData:true});
