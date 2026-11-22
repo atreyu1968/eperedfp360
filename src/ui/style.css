@@ -14,3 +14,20 @@
 .teacher-section .report table{min-width:540px}
 [hidden]{display:none!important}
 @media(max-width:840px){.teacher-section .two,.teacher-section .compact{grid-template-columns:1fr}}
+
+/* Bandeja de entregas con vista de notas por criterio */
+#inboxSection{margin-top:20px;background:#f8fbfe}
+#inboxSection .teacher-bar{align-items:end;flex-wrap:wrap}
+#inboxSection .teacher-bar > div:first-child{min-width:200px}
+#inboxSection .teacher-bar label{margin-top:0}
+.inbox-buttons{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.inbox-buttons button{margin:0;flex:1;min-width:185px}
+#teacherInboxList{overflow:auto;max-width:100%}
+#teacherInboxList table{min-width:640px}
+#teacherInboxList td{vertical-align:middle}
+#teacherInboxList button{margin:0;padding:7px 12px}
+#teacherInboxReview{margin-top:17px;padding:18px;background:white;border:1px solid #cee2eb;border-radius:11px}
+#teacherInboxReview h3{color:#066a74}
+#teacherInboxReview table{min-width:360px}
+#teacherInboxApprove{background:#007d85}
+#studentExportReceipts{margin-top:16px;line-height:1.3}
