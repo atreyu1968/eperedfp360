@@ -23,7 +23,8 @@ function openDatabase(file){
   putSetting:db.prepare('INSERT INTO settings(name,value) VALUES (?,?) ON CONFLICT(name) DO UPDATE SET value=excluded.value'),
   listRecoveries:db.prepare('SELECT id,student_id,ce,assigned_at,status,teacher_note FROM recoveries WHERE student_id=? ORDER BY id DESC'),
   existsStudent:db.prepare('INSERT OR IGNORE INTO students(id,name,created_at) VALUES (?,?,?)'),
-  existingRecovery:db.prepare("SELECT 1 FROM recoveries WHERE student_id=? AND ce=? AND status='pendiente' LIMIT 1")
+  existingRecovery:db.prepare("SELECT 1 FROM recoveries WHERE student_id=? AND ce=? AND status='pendiente' LIMIT 1"),
+  completeRecovery:db.prepare("UPDATE recoveries SET status='superada' WHERE student_id=? AND ce=? AND status='pendiente'")
  };
  return {
    getTeacherCredential:()=>p.getSetting.get('teacher_credential')?.value??null,
@@ -31,6 +32,7 @@ function openDatabase(file){
    ensureStudent:(id,name='')=>p.existsStudent.run(id,name,new Date().toISOString()),
    listRecoveries:id=>p.listRecoveries.all(id),
    hasPendingRecovery:(id,ce)=>!!p.existingRecovery.get(id,ce),
+   completeRecovery:(id,ce)=>p.completeRecovery.run(id,ce),
    hasGrant:(studentId,resourceId)=>!!p.hasGrant.get(studentId,resourceId,Date.now()),
    addGrant:(studentId,resourceId,nonce,expiresAt)=>p.addGrant.run(studentId,resourceId,nonce,expiresAt,new Date().toISOString()),
    getGrades:studentId=>p.history.all(studentId).map(x=>({...x,validated:!!x.validated})),
