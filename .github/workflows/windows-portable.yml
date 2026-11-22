@@ -21,8 +21,8 @@ jobs:
         run: node -e "const Database=require('better-sqlite3');const db=new Database(':memory:');db.prepare('SELECT 1').get();db.close()"
       - name: Probar bandeja SQLite y recepción de calificaciones
         run: node --test tests/submissions-sqlite.test.cjs
-      - name: Probar lectura de notas de los cinco motores HTML
-        run: node --test tests/grade-capture.test.cjs
+      - name: Probar lectura de notas y ponderación 60/40 por CE
+        run: node --test tests/grade-capture.test.cjs tests/evaluation.test.cjs
       - name: Reconstruir SQLite para Electron
         run: npx electron-builder install-app-deps
       - name: Validar integración de bloqueo por actividad
