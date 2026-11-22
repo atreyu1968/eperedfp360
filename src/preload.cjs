@@ -1,8 +1,16 @@
 'use strict';
 const {contextBridge,ipcRenderer}=require('electron');
-const allowed={
-  catalog:()=>ipcRenderer.invoke('catalog'),
-  launch:payload=>ipcRenderer.invoke('launch',payload),
-  summary:studentId=>ipcRenderer.invoke('summary',studentId)
-};
-contextBridge.exposeInMainWorld('epe',Object.freeze(allowed));
+const call=(channel,payload)=>ipcRenderer.invoke(channel,payload);
+const api=Object.freeze({
+  catalog:()=>call('catalog'),
+  launch:payload=>call('launch',payload),
+  teacherStatus:()=>call('teacher:status'),
+  teacherSetup:password=>call('teacher:setup',password),
+  teacherLogin:password=>call('teacher:login',password),
+  teacherLogout:()=>call('teacher:logout'),
+  teacherSummary:studentId=>call('teacher:summary',studentId),
+  teacherRecord:payload=>call('teacher:record',payload),
+  teacherAssign:payload=>call('teacher:assign',payload),
+  teacherIssue:payload=>call('teacher:issue',payload)
+});
+contextBridge.exposeInMainWorld('epe',api);
