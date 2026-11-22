@@ -25,6 +25,7 @@
  <div id="teacherAuthArea">
   <p id="teacherAuthMsg" class="small">Indique la contraseña del profesor para acceder a las calificaciones y códigos.</p>
   <label for="teacherPass">Contraseña docente</label><input id="teacherPass" type="password" maxlength="256" autocomplete="off">
+  <div id="teacherActivationArea" hidden><label for="teacherActivationSecret">Clave maestra del proyecto (solo primera activación)</label><input id="teacherActivationSecret" type="password" maxlength="512" autocomplete="off"><p class="small">Es la clave guardada en GitHub Actions Secrets. No se almacena en el ejecutable.</p></div>
   <button id="teacherAuth" class="primary" type="button">Acceder como profesor</button>
  </div>
  <div id="teacherWork" hidden>
