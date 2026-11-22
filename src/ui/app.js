@@ -98,12 +98,12 @@ function renderTeacherReport(payload){
  host.append(h);
  const table=document.createElement('table');
  const head=document.createElement('tr');
- for(const label of ['RA','Nota vigente','CE pendientes','Sin evaluar'])head.append(makeCell(label,true));
+ for(const label of ['RA','Nota vigente','CE pendientes','Parciales','Sin evaluar'])head.append(makeCell(label,true));
  table.append(head);
  for(const item of payload.ra){
   const tr=document.createElement('tr');
   for(const value of [item.ra,item.grade===null?'Sin cerrar':item.grade.toFixed(2),
-   item.pending.join(', ')||'Ninguno',item.notEvaluated.join(', ')||'Ninguno'])tr.append(makeCell(value));
+   item.pending.join(', ')||'Ninguno',item.partial.join(', ')||'Ninguno',item.notEvaluated.join(', ')||'Ninguno'])tr.append(makeCell(value));
   table.append(tr);
  }
  host.append(table);
@@ -119,6 +119,9 @@ function renderTeacherReport(payload){
   detail.append(tr);
  }
  host.append(detail);
+ const assessment=document.createElement('p');assessment.className='small';
+ assessment.textContent='Ponderación de referencia: portafolio/práctica 60 % y prueba 40 %. Si solo existe uno de los instrumentos, el CE figura como parcial. La nota final del criterio puede validarse manualmente. En RA7 se exige validación docente del desempeño.';
+ host.append(assessment);
  const rec=document.createElement('p');rec.className='small';
  rec.textContent='Recuperaciones asignadas: '+payload.recoveries.length+
   ' · Evidencias calificadas conservadas en el historial: '+payload.history.length;
