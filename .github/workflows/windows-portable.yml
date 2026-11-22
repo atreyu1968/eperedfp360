@@ -19,6 +19,11 @@ jobs:
         run: npm install --no-audit
       - name: Reconstruir SQLite para Electron
         run: npx electron-builder install-app-deps
+      - name: Validar integración de bloqueo por actividad
+        run: |
+          node --check src/activity-preload.cjs
+          node --check src/activity-permissions.cjs
+          node --check src/main.cjs
       - name: Pruebas
         run: npm test
       - name: Compilar portable
