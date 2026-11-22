@@ -9,11 +9,12 @@ const {evaluateRA}=require('./evaluation.cjs');
 const {createRecoveryPlan,validateCriterion}=require('./recovery.cjs');
 const {createCredential,verifyCredential}=require('./teacher-auth.cjs');
 const {verifyPermission}=require('./security.cjs');
+const {parseGradesCsv}=require('./report-import.cjs');
 
 let db,launcher;
 const contentRoot=path.resolve(__dirname,'..','content');
 const pubPath=path.resolve(__dirname,'..','curriculum','teacher-public.pem');
-let teacherUnlocked=false,lastTeacherActivity=0,loginFailures=0,loginBlockedUntil=0;
+let teacherUnlocked=false,lastTeacherActivity=0,loginFailures=0,loginBlockedUntil=0,pendingCsv=null;
 const TEACHER_IDLE=20*60*1000;
 function dataDir(){
  const portable=process.env.PORTABLE_EXECUTABLE_DIR;
@@ -110,7 +111,7 @@ function register(){
  });
  ipcMain.handle('teacher:logout',event=>{
   if(!sameLauncher(event))throw new Error('Acceso denegado');
-  teacherUnlocked=false;return {ok:true};
+  teacherUnlocked=false;pendingCsv=null;return {ok:true};
  });
  ipcMain.handle('teacher:summary',(event,id)=>{
   requiresTeacher(event);
@@ -146,6 +147,32 @@ function register(){
    db.assignRecovery(studentId,item.ce,teacherNote);assigned++;
   }
   return {ok:true,assigned,plan};
+ });
+ ipcMain.handle('teacher:previewCsv',async(event,studentId)=>{
+  requiresTeacher(event);
+  if(!studentOK(studentId))throw new Error('Indique el identificador de alumno antes de importar');
+  const choose=await dialog.showOpenDialog(launcher,{title:'Importar resultados CSV para revisión docente',
+   properties:['openFile'],filters:[{name:'Resultados CSV',extensions:['csv']}]});
+  requiresTeacher(event);
+  if(choose.canceled||!choose.filePaths.length)return {ok:false,cancelled:true};
+  const file=choose.filePaths[0],stat=fs.statSync(file);
+  if(stat.size>250000)throw new Error('El archivo CSV supera el tamaño permitido.');
+  const body=fs.readFileSync(file,'utf8'),parsed=parseGradesCsv(body);
+  const sha256=crypto.createHash('sha256').update(body).digest('hex');
+  if(db.hasImportedCsv(studentId,sha256))throw new Error('Este archivo ya fue importado para ese alumno.');
+  const previewId=crypto.randomUUID();
+  pendingCsv={previewId,studentId,sha256,parsed,created:Date.now()};
+  return {ok:true,previewId,studentId,filename:path.basename(file),
+    ra:parsed.ra,instrument:parsed.instrument,grades:parsed.grades,sha256};
+ });
+ ipcMain.handle('teacher:approveCsv',(event,previewId)=>{
+  requiresTeacher(event);
+  if(!pendingCsv||pendingCsv.previewId!==previewId)throw new Error('Vista previa de importación inexistente');
+  if(Date.now()-pendingCsv.created>10*60*1000){pendingCsv=null;throw new Error('La importación ha caducado. Vuelva a seleccionar el archivo.')}
+  const {studentId,sha256,parsed}=pendingCsv;
+  pendingCsv=null;
+  const imported=db.importValidatedCsv(studentId,parsed.grades,parsed.instrument,sha256);
+  return {ok:true,imported,studentId,ra:parsed.ra};
  });
  ipcMain.handle('teacher:issue',async(event,payload)=>{
   requiresTeacher(event);
