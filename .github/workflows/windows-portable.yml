@@ -1,6 +1,10 @@
 name: Compilar portable Windows (vista previa)
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/windows-portable.yml'
 jobs:
   windows:
     runs-on: windows-latest
