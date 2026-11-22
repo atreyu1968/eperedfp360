@@ -4,7 +4,7 @@ Aplicación de escritorio para **Empresa en el Aula (0446)**, CFGM Gestión Admi
 
 ## Estado
 
-**Fase 3: panel docente, recuperación, importación CSV y autorización granular de actividades implementados a nivel de código fuente.** Este repositorio se ha destinado a la aplicación unificada. No hay todavía un ejecutable Windows publicado ni se ha realizado una auditoría de seguridad. El desarrollo se estructura para integrar las 7 unidades y las 20 aplicaciones HTML ya elaboradas, sin publicar soluciones docentes por accidente.
+**Fase 4: autorizaciones por actividad, recepción automática de calificaciones y bandeja de validación docente desarrolladas a nivel de código fuente.** Este repositorio se ha destinado a la aplicación unificada. No hay todavía un ejecutable Windows publicado ni se ha realizado una auditoría de seguridad. El desarrollo se estructura para integrar las 7 unidades y las 20 aplicaciones HTML ya elaboradas, sin publicar soluciones docentes por accidente.
 
 ## Alcance del proyecto
 
@@ -72,3 +72,16 @@ El código ahora puede autorizar un portafolio completo, un criterio o una activ
 La garantía es **disuasoria**, no anticopia: los HTML son ficheros locales y no impiden que alguien acceda a su código fuera del lanzador. Los códigos y las contraseñas no sustituyen la supervisión.
 
 No se han integrado aún físicamente los 20 HTML en el repositorio público: se importan desde el paquete ZIP de contenido entregado por separado.
+
+## Fase 4: entregas sin Internet
+
+Las 20 aplicaciones HTML originales se autocorrigen en el navegador integrado. Tras finalizar un portafolio o examen, el lanzador puede recoger automáticamente las calificaciones por CE en una bandeja SQLite **pendiente de revisión**.
+
+- En el mismo equipo, el profesor consulta y valida directamente.
+- Entre equipos separados, el estudiante exporta un único paquete JSON de entregas y el profesor importa varios paquetes a la vez.
+- La identidad declarada por el HTML no es prueba de autoría. Las propuestas no cambian notas oficiales sin validación docente.
+- Las evidencias profesionales y rúbricas siguen requiriendo revisión humana.
+
+Guía completa: [docs/ENTREGAS_AUTOMATICAS.md](docs/ENTREGAS_AUTOMATICAS.md).
+
+Los veinte archivos originales siguen importándose desde un ZIP separado; los bancos docentes no se incluyen en el repositorio público.
