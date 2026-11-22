@@ -219,7 +219,7 @@ let inboxRecords=[], selectedReceipt=null;
 async function exportStudentReceipts(){
  try{
   const studentId=$id('student').value.trim();
-  const outcome=await window.epe.exportReceipts(studentId);
+  const outcome=await window.epe.exportReceipts({studentId,resourceId:$id('resource').value,code:$id('token').value.trim()});
   if(outcome.cancelled)return;
   alertUser('Se han guardado '+outcome.count+' entregas para entregar al profesor.',true);
  }catch(e){alertUser('No se pudieron exportar las entregas: '+e.message)}
