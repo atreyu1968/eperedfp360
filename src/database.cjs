@@ -15,6 +15,7 @@ function openDatabase(file){
  ].join('\n'));
  const p={
   hasGrant:db.prepare('SELECT 1 FROM grants WHERE student_id=? AND resource_id=? AND expires_at>? LIMIT 1'),
+  hasScopedGrant:db.prepare("SELECT 1 FROM grants WHERE student_id=? AND resource_id LIKE ? AND expires_at>? LIMIT 1"),
   addGrant:db.prepare('INSERT INTO grants(student_id,resource_id,nonce,expires_at,created_at) VALUES (?,?,?,?,?)'),
   history:db.prepare('SELECT id,ce,score,instrument,mode,validated,at,note FROM grades WHERE student_id=? ORDER BY id ASC'),
   addGrade:db.prepare('INSERT INTO grades(student_id,ce,score,instrument,mode,validated,at,note) VALUES (?,?,?,?,?,?,?,?)'),
@@ -35,6 +36,8 @@ function openDatabase(file){
    hasPendingRecovery:(id,ce)=>!!p.existingRecovery.get(id,ce),
    completeRecovery:(id,ce)=>p.completeRecovery.run(id,ce),
    hasGrant:(studentId,resourceId)=>!!p.hasGrant.get(studentId,resourceId,Date.now()),
+   hasLaunchGrant:(studentId,resourceId)=>!!p.hasGrant.get(studentId,resourceId,Date.now())||
+      !!p.hasScopedGrant.get(studentId,resourceId+'@%',Date.now()),
    addGrant:(studentId,resourceId,nonce,expiresAt)=>p.addGrant.run(studentId,resourceId,nonce,expiresAt,new Date().toISOString()),
    getGrades:studentId=>p.history.all(studentId).map(x=>({...x,validated:!!x.validated})),
    // Solo uso desde proceso principal y herramientas del profesor. Nunca exponer sin autenticación.
