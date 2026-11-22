@@ -13,6 +13,10 @@ const api=Object.freeze({
   teacherAssign:payload=>call('teacher:assign',payload),
   teacherIssue:payload=>call('teacher:issue',payload),
   teacherPreviewCsv:studentId=>call('teacher:previewCsv',studentId),
-  teacherApproveCsv:previewId=>call('teacher:approveCsv',previewId)
+  teacherApproveCsv:previewId=>call('teacher:approveCsv',previewId),
+  exportReceipts:id=>call('student:exportReceipts',id),
+  teacherInbox:status=>call('teacher:inbox',status),
+  teacherReviewReceipt:payload=>call('teacher:reviewReceipt',payload),
+  teacherImportReceipts:()=>call('teacher:importReceipts')
 });
 contextBridge.exposeInMainWorld('epe',api);
