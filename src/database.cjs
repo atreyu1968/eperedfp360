@@ -24,7 +24,8 @@ function openDatabase(file){
   listRecoveries:db.prepare('SELECT id,student_id,ce,assigned_at,status,teacher_note FROM recoveries WHERE student_id=? ORDER BY id DESC'),
   existsStudent:db.prepare('INSERT OR IGNORE INTO students(id,name,created_at) VALUES (?,?,?)'),
   existingRecovery:db.prepare("SELECT 1 FROM recoveries WHERE student_id=? AND ce=? AND status='pendiente' LIMIT 1"),
-  completeRecovery:db.prepare("UPDATE recoveries SET status='superada' WHERE student_id=? AND ce=? AND status='pendiente'")
+  completeRecovery:db.prepare("UPDATE recoveries SET status='superada' WHERE student_id=? AND ce=? AND status='pendiente'"),
+  hasCsvImport:db.prepare('SELECT 1 FROM settings WHERE name=? LIMIT 1')
  };
  return {
    getTeacherCredential:()=>p.getSetting.get('teacher_credential')?.value??null,
@@ -39,6 +40,20 @@ function openDatabase(file){
    // Solo uso desde proceso principal y herramientas del profesor. Nunca exponer sin autenticación.
    recordValidatedGrade:(studentId,ce,score,instrument,mode,note='')=>p.addGrade.run(studentId,ce,score,instrument,mode,1,new Date().toISOString(),note),
    assignRecovery:(studentId,ce,note='')=>p.addRecovery.run(studentId,ce,new Date().toISOString(),'pendiente',note),
+   hasImportedCsv:(studentId,sha256)=>!!p.hasCsvImport.get('csv_import:'+studentId+':'+sha256),
+   importValidatedCsv:(studentId,rows,instrument,sha256)=>{
+    return db.transaction(()=>{
+      const key='csv_import:'+studentId+':'+sha256;
+      if(p.hasCsvImport.get(key))throw new Error('Este CSV ya fue importado para este alumno.');
+      p.existsStudent.run(studentId,'',new Date().toISOString());
+      for(const row of rows){
+        p.addGrade.run(studentId,row.ce,row.score,instrument,'ordinaria',1,
+          new Date().toISOString(),'CSV revisado y validado por el profesor · SHA-256 '+sha256);
+      }
+      p.putSetting.run(key,new Date().toISOString());
+      return rows.length;
+    }).immediate();
+   },
    close:()=>db.close()
  };
 }
