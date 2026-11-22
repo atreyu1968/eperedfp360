@@ -205,6 +205,7 @@ function register(){
    requiresTeacher(event);
    const {id,decision,mode='ordinaria',note=''}=payload||{};
    if(!Number.isSafeInteger(id)||id<1||typeof note!=='string'||note.length>1000)throw new Error('Revisión inválida');
+   if(decision==='aprobar'&&note.trim().length<15)throw new Error('La validación exige observaciones docentes de al menos 15 caracteres.');
    return {ok:true,...db.reviewSubmission(id,decision,mode,note)};
  });
  ipcMain.handle('teacher:importReceipts',async(event)=>{
