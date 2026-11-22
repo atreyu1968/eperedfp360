@@ -1,0 +1,89 @@
+name: EPE FP360 · Windows COMPLETO con 7 unidades
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  portable-completo:
+    name: Preparar los 20 HTML y compilar Windows
+    runs-on: windows-latest
+    timeout-minutes: 50
+    steps:
+      - name: Comprobar repositorio privado
+        shell: pwsh
+        run: |
+          if ("${{ github.event.repository.private }}" -ne "true") {
+            throw "SEGURIDAD: el repositorio es público. Antes de incorporar preguntas y respuestas, cambie su visibilidad a PRIVADO en Settings > General > Danger Zone."
+          }
+      - name: Descargar el código del proyecto
+        uses: actions/checkout@v4
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verificar ZIP de las 20 aplicaciones
+        shell: pwsh
+        run: |
+          $zip = "assets/EPE_FP360_20_APLICACIONES_ALUMNADO_IMPORTACION.zip"
+          if (-not (Test-Path -LiteralPath $zip -PathType Leaf)) {
+            throw "Falta $zip. Súbalo UNA SOLA VEZ desde GitHub > Add file > Upload files después de hacer privado el repositorio."
+          }
+          $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash.ToLowerInvariant()
+          $expected = "171f2d902f9d04356d6200e7e4a71809e63ff41bc8a4aaf4242fbec50fb408eb"
+          if ($actual -ne $expected) { throw "El ZIP no coincide con el original de las 20 aplicaciones (SHA-256 incorrecto)." }
+          Write-Host "ZIP original cotejado y válido: $actual"
+      - name: Comprobar secreto de compilación
+        env:
+          EPE_FP360_MASTER_SECRET: ${{ secrets.EPE_FP360_MASTER_SECRET }}
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:EPE_FP360_MASTER_SECRET) -or $env:EPE_FP360_MASTER_SECRET.Length -lt 24) {
+            throw "Falta EPE_FP360_MASTER_SECRET (24 caracteres como mínimo). Añádalo en Settings > Secrets and variables > Actions."
+          }
+      - name: Extraer e importar las siete unidades
+        shell: pwsh
+        run: |
+          $temp = Join-Path $env:RUNNER_TEMP "EPE-FP360-IMPORT"
+          New-Item -ItemType Directory -Path $temp -Force | Out-Null
+          Expand-Archive -LiteralPath "assets/EPE_FP360_20_APLICACIONES_ALUMNADO_IMPORTACION.zip" -DestinationPath $temp -Force
+          node scripts/import-content.mjs "--source=$temp"
+          if ($LASTEXITCODE -ne 0) { throw "El importador de contenidos ha fallado" }
+          $manifest = Get-Content -Raw -LiteralPath "content/content-manifest.json" | ConvertFrom-Json
+          if (@($manifest.items).Count -ne 20) { throw "Se esperaban exactamente 20 HTML" }
+          $count = @(Get-ChildItem content -Filter '*.html' -Recurse -File).Count
+          if ($count -ne 20) { throw "El contenido no contiene exactamente 20 HTML" }
+          Write-Host "Contenidos importados: $count aplicaciones."
+      - name: Generar claves docentes estables
+        env:
+          EPE_FP360_MASTER_SECRET: ${{ secrets.EPE_FP360_MASTER_SECRET }}
+        shell: pwsh
+        run: |
+          node scripts/preparar-clave-docente-ci.mjs
+          if ($LASTEXITCODE -ne 0) { throw "No se pudo generar la clave docente" }
+          if (-not (Test-Path 'teacher-secrets/private.pem')) { throw "Falta la clave privada cifrada" }
+          if (-not (Test-Path 'curriculum/teacher-public.pem')) { throw "Falta la clave pública" }
+      - name: Instalar dependencias
+        run: npm install --no-audit
+      - name: Ejecutar todas las pruebas
+        run: npm test
+      - name: Verificar integración de Electron y SQLite
+        run: npx electron-builder install-app-deps
+      - name: Compilar aplicación portable con contenidos
+        run: npm run build:win
+      - name: Publicar ejecutable completo para Windows
+        uses: actions/upload-artifact@v4
+        with:
+          name: EPE-FP360-WINDOWS-COMPLETO-7-UNIDADES
+          path: dist/*.exe
+          if-no-files-found: error
+          retention-days: 30
+      - name: Entregar clave docente CIFRADA por separado
+        uses: actions/upload-artifact@v4
+        with:
+          name: EPE-FP360-CLAVE-PRIVADA-DOCENTE-CIFRADA
+          path: teacher-secrets/private.pem
+          if-no-files-found: error
+          retention-days: 30
