@@ -11,6 +11,8 @@ const api=Object.freeze({
   teacherSummary:studentId=>call('teacher:summary',studentId),
   teacherRecord:payload=>call('teacher:record',payload),
   teacherAssign:payload=>call('teacher:assign',payload),
-  teacherIssue:payload=>call('teacher:issue',payload)
+  teacherIssue:payload=>call('teacher:issue',payload),
+  teacherPreviewCsv:studentId=>call('teacher:previewCsv',studentId),
+  teacherApproveCsv:previewId=>call('teacher:approveCsv',previewId)
 });
 contextBridge.exposeInMainWorld('epe',api);
