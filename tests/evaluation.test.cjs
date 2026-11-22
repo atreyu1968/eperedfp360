@@ -21,3 +21,31 @@ test('nota objetiva con penalización 0,5 y blancos neutros',()=>{
  assert.equal(gradeObjective(0,100,0,100),0);
  assert.equal(gradeObjective(100,0,0,100),10);
 });
+
+test('combinar instrumentos 60/40 y no sobreescribir con la última nota',()=>{
+ const entries='abcdef'.split('').flatMap((letter,i)=>[
+  {id:i*2+1,ce:'RA5.'+letter,score:8,validated:true,instrument:'portafolio'},
+  {id:i*2+2,ce:'RA5.'+letter,score:5,validated:true,instrument:'prueba_objetiva'}
+ ]);
+ const result=evaluateRA('RA5',entries);
+ assert.equal(result.grade,6.8);
+ assert.equal(result.criteria[0].instrument,'combinada_60_40');
+ assert.equal(result.passed,true);
+ const onlyPortfolio=evaluateRA('RA5',entries.filter(x=>x.instrument==='portafolio'));
+ assert.equal(onlyPortfolio.grade,null);
+ assert.equal(onlyPortfolio.partial.length,6);
+ assert.equal(onlyPortfolio.pending.length,0);
+});
+test('RA7 no se da por superado solo mediante autocorrección',()=>{
+ const entries='abcdefghij'.split('').flatMap((letter,i)=>[
+  {id:i*2+1,ce:'RA7.'+letter,score:8,validated:true,instrument:'portafolio'},
+  {id:i*2+2,ce:'RA7.'+letter,score:8,validated:true,instrument:'prueba_objetiva'}
+ ]);
+ const preliminary=evaluateRA('RA7',entries);
+ assert.equal(preliminary.grade,8);
+ assert.equal(preliminary.passed,false);
+ const manual=entries.concat('abcdefghij'.split('').map((letter,i)=>({
+  id:100+i,ce:'RA7.'+letter,score:8,validated:true,instrument:'calificacion_final_ce'
+ })));
+ assert.equal(evaluateRA('RA7',manual).passed,true);
+});
