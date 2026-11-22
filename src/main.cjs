@@ -9,7 +9,7 @@ const {evaluateRA}=require('./evaluation.cjs');
 const {createRecoveryPlan,validateCriterion}=require('./recovery.cjs');
 const {createCredential,verifyCredential}=require('./teacher-auth.cjs');
 const {verifyPermission}=require('./security.cjs');
-const {scopedId,candidateIds,getResource}=require('./activity-permissions.cjs');
+const {scopedId,candidateIds,isLaunchPermission}=require('./activity-permissions.cjs');
 const {parseGradesCsv}=require('./report-import.cjs');
 
 let db,launcher;
@@ -81,11 +81,17 @@ function register(){
   if(!found)return {ok:false,error:'Recurso desconocido'};
   if(!found.available)return {ok:false,error:'Importe primero el recurso HTML correspondiente.'};
   try{
-   if(!db.hasGrant(studentId,resourceId)){
+   if(!db.hasLaunchGrant(studentId,resourceId)){
     const pub=fs.existsSync(pubPath)?fs.readFileSync(pubPath,'utf8'):'';
-    const claim=verifyPermission(code,pub,{studentId,resourceId});
+    let issuedFor=resourceId;
+    try{
+     const encoded=String(code||'').split('.')[0];
+     const payload=JSON.parse(Buffer.from(encoded,'base64url').toString('utf8'));
+     if(isLaunchPermission(resourceId,payload.resourceId))issuedFor=payload.resourceId;
+    }catch{}
+    const claim=verifyPermission(code,pub,{studentId,resourceId:issuedFor});
     db.ensureStudent(studentId);
-    db.addGrant(studentId,resourceId,claim.nonce,claim.expiresAt);
+    db.addGrant(studentId,issuedFor,claim.nonce,claim.expiresAt);
    }
    openAsset(found.abs,found.unit.id+' · '+found.unit.title,studentId,resourceId);
    return {ok:true};
