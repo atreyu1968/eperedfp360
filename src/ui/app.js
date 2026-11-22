@@ -153,6 +153,47 @@ async function createCode(){
   alertUser('Autorización emitida hasta '+new Date(result.expiresAt).toLocaleString('es-ES')+'.',true);
  }catch(e){$id('teacherKeyPass').value='';alertUser('No se pudo emitir el código: '+e.message)}
 }
+let csvPreview=null;
+async function previewTeacherCsv(){
+ try{
+  const studentId=$id('teacherStudent').value.trim();
+  const result=await window.epe.teacherPreviewCsv(studentId);
+  if(result.cancelled)return;
+  csvPreview=result;
+  const host=$id('teacherCsvPreviewArea');host.replaceChildren();host.hidden=false;
+  const title=document.createElement('p');title.className='small';
+  title.textContent='ALUMNO: '+result.studentId+' · Archivo: '+result.filename+' · '+result.ra+
+   ' · '+result.instrument+'. Compruebe que el CSV corresponde realmente a ese alumno antes de validar.';
+  host.append(title);
+  const table=document.createElement('table');
+  const head=document.createElement('tr');for(const name of ['Criterio','Nota / 10'])head.append(makeCell(name,true));table.append(head);
+  for(const row of result.grades){
+   const tr=document.createElement('tr');tr.append(makeCell(row.ce),makeCell(row.score.toFixed(2)));table.append(tr);
+  }
+  host.append(table);
+  const hash=document.createElement('p');hash.className='small';hash.textContent='Huella SHA-256: '+result.sha256;
+  host.append(hash);
+  $id('teacherCsvApprove').disabled=false;
+  alertUser('CSV leído. Las notas NO se han incorporado aún.',true);
+ }catch(e){
+  csvPreview=null;$id('teacherCsvApprove').disabled=true;
+  alertUser('No se pudo leer el CSV: '+e.message);
+ }
+}
+async function approveTeacherCsv(){
+ if(!csvPreview)return;
+ const p=csvPreview;
+ if(!window.confirm('Va a incorporar '+p.grades.length+' notas del '+p.ra+' al alumno '+p.studentId+
+  '. El archivo no tiene firma verificable. ¿Ha contrastado su procedencia y las calificaciones?'))return;
+ try{
+  const r=await window.epe.teacherApproveCsv(p.previewId);
+  csvPreview=null;$id('teacherCsvApprove').disabled=true;
+  $id('teacherCsvPreviewArea').hidden=true;$id('teacherCsvPreviewArea').replaceChildren();
+  alertUser('Importación validada: '+r.imported+' calificaciones incorporadas al expediente.',true);
+  await refreshSummary();
+ }catch(e){alertUser('No se pudo incorporar el CSV: '+e.message)}
+}
+
 async function init(){
  try{
   const data=await window.epe.catalog();units=data.units||[];
@@ -173,4 +214,6 @@ $id('teacherSummary').addEventListener('click',refreshSummary);
 $id('teacherSaveGrade').addEventListener('click',teacherRecord);
 $id('teacherAssign').addEventListener('click',assignRecovery);
 $id('teacherCreateCode').addEventListener('click',createCode);
+$id('teacherCsvPreview').addEventListener('click',previewTeacherCsv);
+$id('teacherCsvApprove').addEventListener('click',approveTeacherCsv);
 init();
