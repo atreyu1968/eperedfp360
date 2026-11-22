@@ -1,29 +1,33 @@
 'use strict';
-const {app,BrowserWindow,ipcMain,session}=require('electron');
+const {app,BrowserWindow,ipcMain,session,dialog}=require('electron');
 const path=require('node:path');
 const fs=require('node:fs');
 const crypto=require('node:crypto');
 const manifest=require('../curriculum/manifest.json');
 const {openDatabase}=require('./database.cjs');
 const {evaluateRA}=require('./evaluation.cjs');
+const {createRecoveryPlan,validateCriterion}=require('./recovery.cjs');
+const {createCredential,verifyCredential}=require('./teacher-auth.cjs');
 const {verifyPermission}=require('./security.cjs');
+
 let db,launcher;
 const contentRoot=path.resolve(__dirname,'..','content');
 const pubPath=path.resolve(__dirname,'..','curriculum','teacher-public.pem');
+let teacherUnlocked=false,lastTeacherActivity=0,loginFailures=0,loginBlockedUntil=0;
+const TEACHER_IDLE=20*60*1000;
 function dataDir(){
  const portable=process.env.PORTABLE_EXECUTABLE_DIR;
  const preferred=portable?path.join(portable,'EPE_FP360_Datos'):path.join(app.getPath('userData'),'EPE_FP360_Datos');
  try{fs.mkdirSync(preferred,{recursive:true});fs.accessSync(preferred,fs.constants.W_OK);return preferred}
  catch{const fallback=path.join(app.getPath('userData'),'EPE_FP360_Datos');fs.mkdirSync(fallback,{recursive:true});return fallback}
 }
-function safeStudent(id){return typeof id==='string'&&/^[a-zA-Z0-9._-]{3,64}$/.test(id)}
+function studentOK(id){return typeof id==='string'&&/^[A-Za-z0-9._-]{3,64}$/.test(id)}
 function findAsset(id){
- for(const unit of manifest.units){
-  for(const item of [unit.portfolio,...unit.exams])if(item.id===id){
-   const abs=path.resolve(contentRoot,unit.id.toLowerCase(),item.filename);
-   if(!abs.startsWith(contentRoot+path.sep))throw new Error('Ruta de recurso inválida');
-   return {unit,item,abs,available:fs.existsSync(abs)};
-  }
+ for(const unit of manifest.units)for(const item of [unit.portfolio,...unit.exams]){
+  if(item.id!==id)continue;
+  const abs=path.resolve(contentRoot,unit.id.toLowerCase(),item.filename);
+  if(!abs.startsWith(contentRoot+path.sep))throw new Error('Ruta inválida');
+  return {unit,item,abs,available:fs.existsSync(abs)};
  }
  return null;
 }
@@ -32,47 +36,146 @@ function currentCatalog(){
    exams:u.exams.map(e=>({...e,available:findAsset(e.id).available}))}));
 }
 function makeWindow(){
- launcher=new BrowserWindow({width:1240,height:850,minWidth:960,minHeight:620,backgroundColor:'#f2f6fa',
-  title:'EPE FP360 Portable',webPreferences:{preload:path.join(__dirname,'preload.cjs'),nodeIntegration:false,contextIsolation:true,sandbox:true}});
+ launcher=new BrowserWindow({width:1280,height:880,minWidth:960,minHeight:640,backgroundColor:'#f2f6fa',
+ title:'EPE FP360 Portable',webPreferences:{preload:path.join(__dirname,'preload.cjs'),nodeIntegration:false,contextIsolation:true,sandbox:true}});
  launcher.loadFile(path.join(__dirname,'ui','index.html'));
  launcher.webContents.setWindowOpenHandler(()=>({action:'deny'}));
  launcher.webContents.on('will-navigate',e=>e.preventDefault());
+ launcher.on('closed',()=>{teacherUnlocked=false});
 }
 function openAsset(abs,title){
  const child=new BrowserWindow({width:1280,height:900,minWidth:900,minHeight:550,title,backgroundColor:'#f4f8fb',
   webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true}});
  child.webContents.setWindowOpenHandler(()=>({action:'deny'}));
  child.webContents.on('will-navigate',(event,url)=>{if(!url.startsWith('file://'))event.preventDefault()});
- child.loadFile(abs);
- child.show();
+ child.loadFile(abs);child.show();
 }
-app.whenReady().then(()=>{
- session.defaultSession.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));
- db=openDatabase(path.join(dataDir(),'epe-fp360.sqlite'));
- ipcMain.handle('catalog',()=>({units:currentCatalog(),publicKeyConfigured:fs.existsSync(pubPath)}));
- ipcMain.handle('launch',(_event,payload)=>{
+function sameLauncher(event){
+ return !!launcher&&!launcher.isDestroyed()&&event.sender.id===launcher.webContents.id;
+}
+function requiresTeacher(event){
+ if(!sameLauncher(event))throw new Error('Origen no autorizado');
+ if(!teacherUnlocked||Date.now()-lastTeacherActivity>TEACHER_IDLE){
+  teacherUnlocked=false;throw new Error('Sesión docente cerrada. Vuelva a introducir su contraseña.');
+ }
+ lastTeacherActivity=Date.now();
+}
+function register(){
+ ipcMain.handle('catalog',(event)=>{
+  if(!sameLauncher(event))throw new Error('Acceso denegado');
+  return {units:currentCatalog(),publicKeyConfigured:fs.existsSync(pubPath)};
+ });
+ ipcMain.handle('launch',(event,payload)=>{
+  if(!sameLauncher(event))return {ok:false,error:'Acceso denegado'};
   const {studentId,resourceId,code}=payload||{};
-  if(!safeStudent(studentId))return {ok:false,error:'Identificador: 3–64 letras, cifras, puntos, guiones o guiones bajos.'};
+  if(!studentOK(studentId))return {ok:false,error:'Identificador de alumno inválido (3–64 caracteres).'};
   const found=findAsset(resourceId);
   if(!found)return {ok:false,error:'Recurso desconocido'};
-  if(!found.available)return {ok:false,error:'Falta importar este recurso HTML; consulte las instrucciones.'};
+  if(!found.available)return {ok:false,error:'Importe primero el recurso HTML correspondiente.'};
   try{
    if(!db.hasGrant(studentId,resourceId)){
-    const publicKey=fs.existsSync(pubPath)?fs.readFileSync(pubPath,'utf8'):'';
-    const claim=verifyPermission(code,publicKey,{studentId,resourceId});
+    const pub=fs.existsSync(pubPath)?fs.readFileSync(pubPath,'utf8'):'';
+    const claim=verifyPermission(code,pub,{studentId,resourceId});
+    db.ensureStudent(studentId);
     db.addGrant(studentId,resourceId,claim.nonce,claim.expiresAt);
    }
    openAsset(found.abs,found.unit.id+' · '+found.unit.title);
    return {ok:true};
   }catch(e){return {ok:false,error:String(e.message||e)}}
  });
- ipcMain.handle('summary',(_event,id)=>{
-  if(!safeStudent(id))return {ok:false,error:'Identificador no válido'};
-  const scores=db.getGrades(id);
-  return {ok:true,ra:manifest.units.map(u=>evaluateRA(u.ra,scores))};
+ ipcMain.handle('teacher:status',event=>{
+  if(!sameLauncher(event))throw new Error('Acceso denegado');
+  if(Date.now()-lastTeacherActivity>TEACHER_IDLE)teacherUnlocked=false;
+  return {configured:!!db.getTeacherCredential(),unlocked:teacherUnlocked};
  });
- makeWindow();
-});
+ ipcMain.handle('teacher:setup',(event,password)=>{
+  if(!sameLauncher(event))throw new Error('Acceso denegado');
+  if(db.getTeacherCredential())throw new Error('El perfil docente ya está configurado.');
+  db.setTeacherCredential(createCredential(password));
+  teacherUnlocked=true;lastTeacherActivity=Date.now();
+  return {ok:true};
+ });
+ ipcMain.handle('teacher:login',(event,password)=>{
+  if(!sameLauncher(event))throw new Error('Acceso denegado');
+  if(Date.now()<loginBlockedUntil)throw new Error('Demasiados intentos. Espere un minuto.');
+  const cred=db.getTeacherCredential();
+  if(!cred)throw new Error('Configure primero la contraseña docente.');
+  if(!verifyCredential(password,cred)){
+   loginFailures++;
+   if(loginFailures>=5){loginFailures=0;loginBlockedUntil=Date.now()+60000}
+   throw new Error('Contraseña incorrecta');
+  }
+  loginFailures=0;loginBlockedUntil=0;teacherUnlocked=true;lastTeacherActivity=Date.now();
+  return {ok:true};
+ });
+ ipcMain.handle('teacher:logout',event=>{
+  if(!sameLauncher(event))throw new Error('Acceso denegado');
+  teacherUnlocked=false;return {ok:true};
+ });
+ ipcMain.handle('teacher:summary',(event,id)=>{
+  requiresTeacher(event);
+  if(!studentOK(id))throw new Error('Identificador inválido');
+  const scores=db.getGrades(id);
+  return {ok:true,studentId:id,ra:manifest.units.map(u=>evaluateRA(u.ra,scores)),
+   history:scores,recoveries:db.listRecoveries(id)};
+ });
+ ipcMain.handle('teacher:record',(event,payload)=>{
+  requiresTeacher(event);
+  const {studentId,ce,score,instrument,mode,note=''}=payload||{};
+  if(!studentOK(studentId)||!validateCriterion(ce))throw new Error('Alumno o criterio inválido');
+  const value=Number(score);
+  if(score===''||score===null||!Number.isFinite(value)||value<0||value>10)throw new Error('Introduzca una nota entre 0 y 10');
+  if(!['ordinaria','recuperacion'].includes(mode)||!['portafolio','prueba_objetiva','observacion','rubrica','calificacion_final_ce'].includes(instrument))throw new Error('Instrumento o modalidad inválidos');
+  if(typeof note!=='string'||note.length>2000)throw new Error('Observaciones demasiado extensas');
+  db.ensureStudent(studentId);
+  const result=db.recordValidatedGrade(studentId,ce,value,instrument,mode,note);
+  if(mode==='recuperacion'&&value>=5)db.completeRecovery(studentId,ce);
+  return {ok:true,recordId:result.lastInsertRowid.toString()};
+ });
+ ipcMain.handle('teacher:assign',(event,payload)=>{
+  requiresTeacher(event);
+  const {studentId,ra,activitiesPerCriterion=20,teacherNote=''}=payload||{};
+  if(!studentOK(studentId)||typeof teacherNote!=='string'||teacherNote.length>1000)throw new Error('Datos de asignación inválidos');
+  if(!manifest.units.some(u=>u.ra===ra))throw new Error('RA desconocido');
+  const plan=createRecoveryPlan(ra,db.getGrades(studentId),{studentId,activitiesPerCriterion});
+  if(plan.pending.length===0)throw new Error('No hay criterios evaluados y pendientes en este RA.');
+  db.ensureStudent(studentId);
+  let assigned=0;
+  for(const item of plan.pending){
+   if(db.hasPendingRecovery(studentId,item.ce))continue;
+   db.assignRecovery(studentId,item.ce,teacherNote);assigned++;
+  }
+  return {ok:true,assigned,plan};
+ });
+ ipcMain.handle('teacher:issue',async(event,payload)=>{
+  requiresTeacher(event);
+  const {studentId,resourceId,hours=48,passphrase}=payload||{};
+  if(!studentOK(studentId)||!findAsset(resourceId))throw new Error('Alumno o recurso inválido');
+  if(!Number.isSafeInteger(hours)||hours<1||hours>720)throw new Error('Duración: entre 1 y 720 horas');
+  if(typeof passphrase!=='string'||passphrase.length===0)throw new Error('Indique la frase de paso de la clave privada docente');
+  const choice=await dialog.showOpenDialog(launcher,{
+   title:'Seleccione la clave privada DOCENTE (nunca se almacena en el equipo del alumno)',
+   properties:['openFile'],filters:[{name:'Clave PEM',extensions:['pem']}]});
+  if(choice.canceled||!choice.filePaths.length)return {ok:false,cancelled:true};
+  const stat=fs.statSync(choice.filePaths[0]);
+  if(stat.size>32000)throw new Error('El archivo de clave es demasiado grande');
+  const privateKey=crypto.createPrivateKey({key:fs.readFileSync(choice.filePaths[0]),passphrase});
+  const now=Date.now();
+  const claim={version:1,audience:'epe-fp360',studentId,resourceId,issuedAt:now,
+   expiresAt:now+hours*3600000,nonce:crypto.randomBytes(20).toString('hex')};
+  const encoded=Buffer.from(JSON.stringify(claim)).toString('base64url');
+  const signature=crypto.sign(null,Buffer.from(encoded,'utf8'),privateKey).toString('base64url');
+  const token=encoded+'.'+signature;
+  const publicKey=fs.existsSync(pubPath)?fs.readFileSync(pubPath,'utf8'):'';
+  verifyPermission(token,publicKey,{studentId,resourceId});
+  return {ok:true,code:token,expiresAt:claim.expiresAt};
+ });
+}
+app.whenReady().then(()=>{
+ session.defaultSession.setPermissionRequestHandler((_wc,_permission,cb)=>cb(false));
+ db=openDatabase(path.join(dataDir(),'epe-fp360.sqlite'));
+ register();makeWindow();
+}).catch(err=>{console.error('No se pudo iniciar EPE FP360:',err);app.quit()});
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit()});
 app.on('before-quit',()=>db?.close());
 app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)makeWindow()});
