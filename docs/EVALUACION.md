@@ -33,12 +33,16 @@ El informe permite detectar los CE con nota vigente inferior al umbral y los CE 
 
 ## Implementación
 
-Las funciones puras de evaluación están en `src/evaluation.cjs`; el historial se registra en SQLite. La integración automática de resultados a partir de los HTML originales necesita adaptadores por aplicación.
+Las funciones puras de evaluación están en `src/evaluation.cjs`; el historial se registra en SQLite. La recepción automática de resultados de los 20 HTML originales está incorporada mediante el adaptador de lectura de notas finalizadas; queda pendiente comprobar el funcionamiento extremo a extremo en el ejecutable de Windows con los contenidos importados.
 
 ## Entrada de calificaciones
 
 El panel permite notas docentes validadas por criterio y la importación de CSV de aplicaciones compatibles. Una nota calculada automáticamente no se impone como nota definitiva sin validación.
 
-El historial conserva calificaciones de evaluación ordinaria y de recuperación. En el prototipo se toma para cada CE la entrada validada más reciente; el profesor debe registrar la calificación final agregada del criterio cuando existan varios instrumentos.
+El historial conserva calificaciones de evaluación ordinaria y de recuperación. Cuando están presentes ambos instrumentos, el motor aplica provisionalmente 60 % portafolio/práctica y 40 % prueba objetiva, sin sobrescribir uno con el otro. Si solo existe uno, el CE queda «parcial», no «suspendido». La calificación final del CE registrada expresamente por el docente tiene prioridad. Una recuperación validada posterior sustituye la nota del CE recuperado. Estas reglas deberán contrastarse con la programación aprobada antes de uso oficial.
 
 Una recuperación con una nota validada igual o superior a 5 cierra el estado «pendiente» del plan. El umbral y la regla concreta de superación se revisarán conforme a la programación aprobada del departamento.
+
+## Protección específica del RA7
+
+Aunque se disponga de resultados de portafolio y prueba objetiva, el RA7 no se declara superado automáticamente: requiere que los CE cuenten con valoración final docente del desempeño. La prueba escrita por sí sola no acredita cooperación, respeto, proactividad o trabajo en equipo.
