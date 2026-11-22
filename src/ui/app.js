@@ -85,7 +85,7 @@ async function authenticateTeacher(){
   if(!teacherConfigured){await window.epe.teacherSetup(password);teacherConfigured=true}
   else await window.epe.teacherLogin(password);
   teacherUnlocked=true;$id('teacherPass').value='';
-  showTeacher();alertUser('Sesión docente iniciada.',true);
+  showTeacher();await loadInbox();alertUser('Sesión docente iniciada.',true);
  }catch(e){alertUser('No se pudo iniciar sesión: '+e.message)}
 }
 function makeCell(value,header=false){
@@ -214,6 +214,97 @@ async function approveTeacherCsv(){
  }catch(e){alertUser('No se pudo incorporar el CSV: '+e.message)}
 }
 
+let inboxRecords=[], selectedReceipt=null;
+
+async function exportStudentReceipts(){
+ try{
+  const studentId=$id('student').value.trim();
+  const outcome=await window.epe.exportReceipts(studentId);
+  if(outcome.cancelled)return;
+  alertUser('Se han guardado '+outcome.count+' entregas para entregar al profesor.',true);
+ }catch(e){alertUser('No se pudieron exportar las entregas: '+e.message)}
+}
+
+function renderInbox(){
+ const host=$id('teacherInboxList');host.replaceChildren();
+ if(inboxRecords.length===0){const p=document.createElement('p');p.className='small';
+  p.textContent='No hay entregas para el filtro seleccionado.';host.append(p);return;}
+ const table=document.createElement('table');
+ const th=document.createElement('tr');
+ for(const x of ['ID alumno','Unidad / recurso','Recepción','Estado','Acciones'])th.append(makeCell(x,true));
+ table.append(th);
+ for(const item of inboxRecords){
+  const tr=document.createElement('tr');
+  tr.append(makeCell(item.student_id),makeCell(item.resource_id),
+    makeCell(new Date(item.received_at).toLocaleString('es-ES')),makeCell(item.status));
+  const col=document.createElement('td');
+  const b=document.createElement('button');b.className='subtle';b.type='button';
+  b.textContent=item.status==='pendiente'?'Revisar':'Ver';
+  b.addEventListener('click',()=>showInboxReceipt(item));
+  col.append(b);tr.append(col);table.append(tr);
+ }
+ host.append(table);
+}
+function showInboxReceipt(item){
+ selectedReceipt=item;
+ $id('teacherInboxReview').hidden=false;
+ $id('teacherInboxDetails').textContent='Alumno identificado en EPE: '+item.student_id+
+  ' · Nombre indicado en HTML: '+(item.claimed_name||'No consta')+
+  ' · Código declarado: '+(item.claimed_student||'No consta')+
+  ' · '+item.ra+' · '+item.instrument+
+  ' · Sesión: '+item.session_id+' · Finalización: '+new Date(item.finalized_at).toLocaleString('es-ES');
+ const host=$id('teacherInboxScores');host.replaceChildren();
+ const table=document.createElement('table');const header=document.createElement('tr');
+ for(const x of ['Criterio','Nota propuesta / 10'])header.append(makeCell(x,true));
+ table.append(header);
+ for(const row of item.scores){const tr=document.createElement('tr');
+   tr.append(makeCell(row.ce),makeCell(Number(row.score).toFixed(2)));table.append(tr)}
+ host.append(table);
+ const canReview=item.status==='pendiente';
+ $id('teacherInboxApprove').disabled=!canReview;
+ $id('teacherInboxDiscard').disabled=!canReview;
+ $id('teacherInboxNote').value='';
+ $id('teacherInboxReview').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+async function loadInbox(){
+ try{
+  const result=await window.epe.teacherInbox($id('teacherInboxFilter').value);
+  inboxRecords=result.items;
+  selectedReceipt=null;
+  $id('teacherInboxReview').hidden=true;
+  renderInbox();
+ }catch(e){alertUser('No se pudo abrir la bandeja: '+e.message)}
+}
+async function reviewReceipt(decision){
+ if(!selectedReceipt)return;
+ const item=selectedReceipt;
+ const note=$id('teacherInboxNote').value.trim();
+ if(decision==='aprobar' && note.length<15){
+  alertUser('Indique una observación de al menos 15 caracteres sobre las evidencias revisadas.');return;
+ }
+ if(!window.confirm((decision==='aprobar'?'VALIDAR':'DESCARTAR')+
+   ' los resultados de '+item.student_id+' ('+item.resource_id+')? '+
+   (decision==='aprobar'?'Se registrarán como notas validadas por el profesor.':'No se modificarán las calificaciones.')))return;
+ try{
+  const result=await window.epe.teacherReviewReceipt({
+   id:item.id,decision,mode:$id('teacherInboxMode').value,note
+  });
+  alertUser('Entrega '+result.status+'. '+result.count+' criterios incorporados.',true);
+  await loadInbox();
+  if($id('teacherStudent').value.trim()===item.student_id)await refreshSummary();
+ }catch(e){alertUser('No se pudo revisar: '+e.message)}
+}
+async function importOfflineReceipts(){
+ try{
+  const result=await window.epe.teacherImportReceipts();
+  if(result.cancelled)return;
+  let message='Se importaron '+result.imported+' entregas. Duplicadas: '+result.duplicates+'.';
+  if(result.errors.length)message+=' Errores: '+result.errors.slice(0,4).join(' | ');
+  alertUser(message,result.errors.length===0);
+  await loadInbox();
+ }catch(e){alertUser('No se pudo importar el paquete: '+e.message)}
+}
+
 async function init(){
  try{
   const data=await window.epe.catalog();units=data.units||[];
@@ -222,9 +313,16 @@ async function init(){
    :'No se ha incorporado la clave pública del profesor. Los códigos aún no se podrán validar.';
   if(units.length)buildResourceSelect(units[0]);
   renderUnits();fillCriteria();updateTeacherScope();await updateTeacherStatus();
+  if(teacherUnlocked)await loadInbox();
  }catch(e){alertUser('No se pudo iniciar la aplicación: '+e.message)}
 }
 $id('launch').addEventListener('click',studentLaunch);
+$id('studentExportReceipts').addEventListener('click',exportStudentReceipts);
+$id('teacherInboxRefresh').addEventListener('click',loadInbox);
+$id('teacherInboxFilter').addEventListener('change',loadInbox);
+$id('teacherInboxApprove').addEventListener('click',()=>reviewReceipt('aprobar'));
+$id('teacherInboxDiscard').addEventListener('click',()=>reviewReceipt('descartar'));
+$id('teacherInboxImport').addEventListener('click',importOfflineReceipts);
 $id('resource').addEventListener('change',updateTeacherScope);
 $id('teacherScope').addEventListener('change',updateTeacherScope);
 $id('teacherAuth').addEventListener('click',authenticateTeacher);
