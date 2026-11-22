@@ -1,0 +1,28 @@
+name: Compilar portable Windows (vista previa)
+on:
+  workflow_dispatch:
+jobs:
+  windows:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Instalar dependencias
+        run: npm install --no-audit
+      - name: Reconstruir SQLite para Electron
+        run: npx electron-builder install-app-deps
+      - name: Pruebas
+        run: npm test
+      - name: Compilar portable
+        run: npm run build:win
+      - name: Publicar como artefacto de pruebas (no release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: EPE-FP360-Portable-PREVIEW-SIN-CONTENIDOS
+          path: dist/*.exe
+          if-no-files-found: error
+          retention-days: 7

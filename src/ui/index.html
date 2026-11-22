@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'none'; object-src 'none'">
+<title>EPE FP360 · Empresa en el Aula</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<header><div class="brand"><div class="brand-icon">360</div><div><strong>EPE FP360</strong><small>Empresa en el Aula · Canarias · 2026/2027</small></div></div><div class="head-note">Aplicación local · No requiere Internet</div></header>
+<main class="layout">
+<section class="hero">
+ <div><span class="overline">Módulo profesional 0446</span><h1>Empresa en el Aula</h1><p>Las siete unidades didácticas en un único entorno. Acceso con autorización del profesorado y seguimiento por resultados de aprendizaje.</p></div>
+ <aside><b>7</b><span>resultados de aprendizaje</span><b>49</b><span>criterios de evaluación</span></aside>
+</section>
+<div id="alert" class="alert" hidden></div>
+<section class="two">
+ <article class="panel"><h2>Identificación del alumno</h2><p class="small">Utiliza el mismo identificador durante todo el curso. Solo admite letras, números, puntos, guiones y guiones bajos.</p><label for="student">Identificador del alumno</label><input id="student" type="text" placeholder="Ejemplo: GA2-015" autocomplete="off" maxlength="64"><button id="summary" class="subtle">Consultar criterios</button></article>
+ <article class="panel"><h2>Desbloqueo de actividad</h2><label for="resource">Portafolio o prueba objetiva</label><select id="resource"></select><label for="token">Código facilitado por el profesor</label><textarea id="token" rows="2" placeholder="Pegue aquí el código de autorización firmado"></textarea><button id="launch" class="primary">Abrir actividad autorizada</button><p id="key-status" class="small"></p></article>
+</section>
+<section><div class="section-head"><h2>Unidades didácticas</h2><span>Selecciona una unidad para consultar sus recursos</span></div><div id="units" class="units"></div></section>
+<section class="panel report" id="results" hidden><h2>Seguimiento individual por RA y CE</h2><p class="small">Las calificaciones requieren validación del profesorado; la ausencia de registro no implica una nota de cero.</p><div id="report"></div></section>
+<footer>Versión inicial de integración. Los contenidos se incorporan mediante el importador; la supervisión docente sigue siendo necesaria.</footer>
+</main>
+<script src="./app.js"></script>
+</body>
+</html>
