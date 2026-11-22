@@ -1,45 +1,176 @@
 'use strict';
 const $=s=>document.querySelector(s);
-let units=[],selection='';
-const alerts=(msg,good=false)=>{const node=$('#alert');node.hidden=!msg;node.textContent=msg||'';node.style.background=good?'#e8f8ec':'#fef1e3';node.style.color=good?'#155f39':'#925c1d'};
-function resources(u){return [u.portfolio,...u.exams]}
-function buildSelect(u){
- const select=$('#resource');select.replaceChildren();
- for(const r of resources(u)){const o=document.createElement('option');o.value=r.id;o.textContent=(r.kind==='portfolio'?'Portafolio':'Prueba objetiva '+r.questions+' preguntas')+(r.available?'':' · sin importar');select.append(o)}
+const $id=id=>document.getElementById(id);
+let units=[],selection='',teacherConfigured=false,teacherUnlocked=false;
+const alertUser=(msg,good=false)=>{
+ const n=$id('alert');n.hidden=!msg;n.textContent=msg||'';
+ n.style.background=good?'#e8f8ec':'#fef1e3';
+ n.style.color=good?'#155f39':'#925c1d';
+ if(msg)n.scrollIntoView({block:'nearest'});
+};
+const resources=u=>[u.portfolio,...u.exams];
+function fillSelect(select,options){
+ select.replaceChildren();
+ for(const [value,label] of options){const op=document.createElement('option');op.value=value;op.textContent=label;select.append(op)}
+}
+function buildResourceSelect(u){
+ fillSelect($id('resource'),resources(u).map(r=>[r.id,
+  (r.kind==='portfolio'?'Portafolio':'Prueba objetiva · '+r.questions+' preguntas')+(r.available?'':' · aún sin importar')]));
  selection=u.id;
 }
-function render(){
- const host=$('#units');host.replaceChildren();
+function renderUnits(){
+ const host=$id('units');host.replaceChildren();
  for(const u of units){
-  const card=document.createElement('button');card.type='button';card.className='unit'+(selection===u.id?' selected':'');
+  const button=document.createElement('button');button.type='button';
+  button.className='unit'+(selection===u.id?' selected':'');
   const id=document.createElement('span');id.className='id';id.textContent=u.id+' · '+u.ra;
-  const title=document.createElement('h3');title.textContent=u.title;
-  const desc=document.createElement('p');desc.textContent=u.activities+' actividades · '+u.weights.length+' criterios';
-  const available=resources(u).filter(r=>r.available).length;
-  const status=document.createElement('span');status.className='status'+(available===resources(u).length?' ready':'');status.textContent=available+'/'+resources(u).length+' recursos importados';
-  card.append(id,title,desc,status);card.addEventListener('click',()=>{buildSelect(u);render()});host.append(card);
+  const h=document.createElement('h3');h.textContent=u.title;
+  const p=document.createElement('p');p.textContent=u.activities+' actividades · '+u.weights.length+' criterios';
+  const ready=resources(u).filter(r=>r.available).length;
+  const status=document.createElement('span');status.className='status'+(ready===resources(u).length?' ready':'');
+  status.textContent=ready+'/'+resources(u).length+' recursos importados';
+  button.append(id,h,p,status);
+  button.addEventListener('click',()=>{buildResourceSelect(u);renderUnits()});
+  host.append(button);
  }
+}
+function fillCriteria(){
+ const raOpts=units.map(u=>[u.ra,u.ra+' · '+u.title]);
+ fillSelect($id('teacherRA'),raOpts);
+ const ce=units.flatMap(u=>u.weights.map((_,i)=>[u.ra+'.'+String.fromCharCode(97+i),u.ra+'.'+String.fromCharCode(97+i)]));
+ fillSelect($id('teacherCE'),ce);
+}
+function showTeacher(){
+ $id('teacherAuthArea').hidden=teacherUnlocked;
+ $id('teacherWork').hidden=!teacherUnlocked;
+ $id('teacherAuth').textContent=teacherConfigured?'Acceder como profesor':'Configurar contraseña docente';
+ $id('teacherAuthMsg').textContent=teacherConfigured
+ ?'Introduzca la contraseña del perfil docente. Solo se almacenará una huella criptográfica.'
+ :'Primer acceso: establezca una contraseña docente de 14 caracteres o más antes de entregar el programa al alumnado.';
+}
+async function updateTeacherStatus(){
+ const status=await window.epe.teacherStatus();
+ teacherConfigured=status.configured;teacherUnlocked=status.unlocked;
+ showTeacher();
+}
+async function studentLaunch(){
+ try{
+  const result=await window.epe.launch({
+   studentId:$id('student').value.trim(),resourceId:$id('resource').value,
+   code:$id('token').value.trim()});
+  alertUser(result.ok?'Recurso abierto correctamente.':result.error,!!result.ok);
+ }catch(e){alertUser('Error de acceso: '+e.message)}
+}
+async function authenticateTeacher(){
+ try{
+  const password=$id('teacherPass').value;
+  if(!teacherConfigured){await window.epe.teacherSetup(password);teacherConfigured=true}
+  else await window.epe.teacherLogin(password);
+  teacherUnlocked=true;$id('teacherPass').value='';
+  showTeacher();alertUser('Sesión docente iniciada.',true);
+ }catch(e){alertUser('No se pudo iniciar sesión: '+e.message)}
+}
+function makeCell(value,header=false){
+ const el=document.createElement(header?'th':'td');
+ el.textContent=String(value??'');return el;
+}
+function renderTeacherReport(payload){
+ const host=$id('teacherResults');host.replaceChildren();
+ const h=document.createElement('h3');h.textContent='Expediente de '+payload.studentId;
+ host.append(h);
+ const table=document.createElement('table');
+ const head=document.createElement('tr');
+ for(const label of ['RA','Nota vigente','CE pendientes','Sin evaluar'])head.append(makeCell(label,true));
+ table.append(head);
+ for(const item of payload.ra){
+  const tr=document.createElement('tr');
+  for(const value of [item.ra,item.grade===null?'Sin cerrar':item.grade.toFixed(2),
+   item.pending.join(', ')||'Ninguno',item.notEvaluated.join(', ')||'Ninguno'])tr.append(makeCell(value));
+  table.append(tr);
+ }
+ host.append(table);
+ const title=document.createElement('h3');title.textContent='Detalle por criterio de evaluación';
+ host.append(title);
+ const detail=document.createElement('table');
+ const dh=document.createElement('tr');
+ for(const k of ['CE','Peso','Nota','Estado'])dh.append(makeCell(k,true));
+ detail.append(dh);
+ for(const ra of payload.ra)for(const c of ra.criteria){
+  const tr=document.createElement('tr');
+  for(const value of [c.id,c.weight+' %',c.score===null?'—':c.score.toFixed(2),c.status])tr.append(makeCell(value));
+  detail.append(tr);
+ }
+ host.append(detail);
+ const rec=document.createElement('p');rec.className='small';
+ rec.textContent='Recuperaciones asignadas: '+payload.recoveries.length+
+  ' · Evidencias calificadas conservadas en el historial: '+payload.history.length;
+ host.append(rec);
+}
+async function refreshSummary(){
+ try{
+  const studentId=$id('teacherStudent').value.trim();
+  const payload=await window.epe.teacherSummary(studentId);
+  renderTeacherReport(payload);alertUser('Expediente actualizado.',true);
+ }catch(e){alertUser('No se pudo consultar: '+e.message)}
+}
+async function teacherRecord(){
+ try{
+  const scoreText=$id('teacherGrade').value.replace(',','.');
+  const response=await window.epe.teacherRecord({
+   studentId:$id('teacherStudent').value.trim(),
+   ce:$id('teacherCE').value,score:scoreText,
+   instrument:$id('teacherInstrument').value,mode:$id('teacherMode').value,
+   note:$id('teacherNote').value.trim()
+  });
+  alertUser('Calificación registrada y validada. Registro nº '+response.recordId,true);
+  await refreshSummary();
+ }catch(e){alertUser('No se pudo registrar la nota: '+e.message)}
+}
+async function assignRecovery(){
+ try{
+  const studentId=$id('teacherStudent').value.trim(),ra=$id('teacherRA').value;
+  const quantity=Number($id('teacherActivities').value);
+  if(!window.confirm('¿Asignar los CE evaluados y pendientes de '+ra+' al alumno '+studentId+'?'))return;
+  const result=await window.epe.teacherAssign({
+   studentId,ra,activitiesPerCriterion:quantity,
+   teacherNote:$id('teacherRecoveryNote').value.trim()
+  });
+  alertUser(result.assigned+' recuperaciones nuevas asignadas. Las notas ordinarias se conservan.',true);
+  await refreshSummary();
+ }catch(e){alertUser('No se pudo asignar la recuperación: '+e.message)}
+}
+async function createCode(){
+ try{
+  const secret=$id('teacherKeyPass').value;
+  const result=await window.epe.teacherIssue({
+   studentId:$id('teacherStudent').value.trim(),
+   resourceId:$id('resource').value,
+   hours:Number($id('teacherHours').value),passphrase:secret
+  });
+  $id('teacherKeyPass').value='';
+  if(result.cancelled)return;
+  $id('teacherIssuedCode').value=result.code;
+  alertUser('Autorización emitida hasta '+new Date(result.expiresAt).toLocaleString('es-ES')+'.',true);
+ }catch(e){$id('teacherKeyPass').value='';alertUser('No se pudo emitir el código: '+e.message)}
 }
 async function init(){
  try{
   const data=await window.epe.catalog();units=data.units||[];
-  $('#key-status').textContent=data.publicKeyConfigured?'Clave pública docente configurada.':'Falta configurar la clave pública del profesor antes de desbloquear recursos.';
-  if(units.length)buildSelect(units[0]);render();
- }catch(e){alerts('No se pudo abrir el catálogo: '+e.message)}
+  $id('key-status').textContent=data.publicKeyConfigured
+   ?'Clave pública de autorizaciones configurada.'
+   :'No se ha incorporado la clave pública del profesor. Los códigos aún no se podrán validar.';
+  if(units.length)buildResourceSelect(units[0]);
+  renderUnits();fillCriteria();await updateTeacherStatus();
+ }catch(e){alertUser('No se pudo iniciar la aplicación: '+e.message)}
 }
-$('#launch').addEventListener('click',async()=>{
- const studentId=$('#student').value.trim(),resourceId=$('#resource').value,code=$('#token').value.trim();
- alerts('');
- try{const result=await window.epe.launch({studentId,resourceId,code});alerts(result.ok?'Recurso autorizado y abierto.':result.error,!!result.ok)}
- catch(e){alerts('No se pudo abrir: '+e.message)}
+$id('launch').addEventListener('click',studentLaunch);
+$id('teacherAuth').addEventListener('click',authenticateTeacher);
+$id('teacherLogout').addEventListener('click',async()=>{
+ await window.epe.teacherLogout();teacherUnlocked=false;showTeacher();$id('teacherResults').replaceChildren();
+ alertUser('Sesión docente cerrada.',true);
 });
-$('#summary').addEventListener('click',async()=>{
- const id=$('#student').value.trim();const result=await window.epe.summary(id);
- if(!result.ok){alerts(result.error);return}
- $('#results').hidden=false;const target=$('#report');target.replaceChildren();
- const table=document.createElement('table');const hdr=document.createElement('tr');
- for(const name of ['RA','Calificación','Criterios pendientes','Sin evaluar']){const t=document.createElement('th');t.textContent=name;hdr.append(t)}table.append(hdr);
- for(const item of result.ra){const tr=document.createElement('tr');for(const value of [item.ra,item.grade===null?'No cerrada':item.grade.toFixed(2)+' / 10',item.pending.join(', ')||'Ninguno',item.notEvaluated.join(', ')||'Ninguno']){const td=document.createElement('td');td.textContent=value;tr.append(td)}table.append(tr)}target.append(table);
- $('#results').scrollIntoView({behavior:'smooth',block:'start'});
-});
+$id('teacherSummary').addEventListener('click',refreshSummary);
+$id('teacherSaveGrade').addEventListener('click',teacherRecord);
+$id('teacherAssign').addEventListener('click',assignRecovery);
+$id('teacherCreateCode').addEventListener('click',createCode);
 init();
