@@ -61,6 +61,7 @@ function fillCriteria(){
 function showTeacher(){
  $id('teacherAuthArea').hidden=teacherUnlocked;
  $id('teacherWork').hidden=!teacherUnlocked;
+ $id('teacherActivationArea').hidden=teacherConfigured;
  $id('teacherAuth').textContent=teacherConfigured?'Acceder como profesor':'Configurar contraseña docente';
  $id('teacherAuthMsg').textContent=teacherConfigured
  ?'Introduzca la contraseña del perfil docente. Solo se almacenará una huella criptográfica.'
@@ -82,11 +83,11 @@ async function studentLaunch(){
 async function authenticateTeacher(){
  try{
   const password=$id('teacherPass').value;
-  if(!teacherConfigured){await window.epe.teacherSetup(password);teacherConfigured=true}
+  if(!teacherConfigured){await window.epe.teacherSetup({password,activationSecret:$id('teacherActivationSecret').value});teacherConfigured=true}
   else await window.epe.teacherLogin(password);
-  teacherUnlocked=true;$id('teacherPass').value='';
+  teacherUnlocked=true;$id('teacherPass').value='';$id('teacherActivationSecret').value='';
   showTeacher();await loadInbox();alertUser('Sesión docente iniciada.',true);
- }catch(e){alertUser('No se pudo iniciar sesión: '+e.message)}
+ }catch(e){$id('teacherActivationSecret').value='';alertUser('No se pudo iniciar sesión: '+e.message)}
 }
 function makeCell(value,header=false){
  const el=document.createElement(header?'th':'td');
