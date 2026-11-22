@@ -9,9 +9,11 @@ const {evaluateRA}=require('./evaluation.cjs');
 const {createRecoveryPlan,validateCriterion}=require('./recovery.cjs');
 const {createCredential,verifyCredential}=require('./teacher-auth.cjs');
 const {verifyPermission}=require('./security.cjs');
+const {scopedId,candidateIds,getResource}=require('./activity-permissions.cjs');
 const {parseGradesCsv}=require('./report-import.cjs');
 
 let db,launcher;
+const activeChildren=new Map();
 const contentRoot=path.resolve(__dirname,'..','content');
 const pubPath=path.resolve(__dirname,'..','curriculum','teacher-public.pem');
 let teacherUnlocked=false,lastTeacherActivity=0,loginFailures=0,loginBlockedUntil=0,pendingCsv=null;
@@ -44,14 +46,16 @@ function makeWindow(){
  launcher.webContents.on('will-navigate',e=>e.preventDefault());
  launcher.on('closed',()=>{teacherUnlocked=false});
 }
-function openAsset(abs,title,studentId){
+function openAsset(abs,title,studentId,resourceId){
  const partition='persist:epe-alumno-'+crypto.createHash('sha256').update(studentId).digest('hex').slice(0,24);
  const studentSession=session.fromPartition(partition);
  studentSession.setPermissionRequestHandler((_wc,_permission,cb)=>cb(false));
  const child=new BrowserWindow({width:1280,height:900,minWidth:900,minHeight:550,title,backgroundColor:'#f4f8fb',
-  webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true,partition}});
+  webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true,partition,preload:resourceId.endsWith('-PORTAFOLIO')?path.join(__dirname,'activity-preload.cjs'):undefined}});
  child.webContents.setWindowOpenHandler(()=>({action:'deny'}));
  child.webContents.on('will-navigate',event=>event.preventDefault());
+ activeChildren.set(child.webContents.id,{studentId,resourceId});
+ child.on('closed',()=>activeChildren.delete(child.webContents.id));
  child.loadFile(abs);child.show();
 }
 function sameLauncher(event){
@@ -83,8 +87,39 @@ function register(){
     db.ensureStudent(studentId);
     db.addGrant(studentId,resourceId,claim.nonce,claim.expiresAt);
    }
-   openAsset(found.abs,found.unit.id+' · '+found.unit.title,studentId);
+   openAsset(found.abs,found.unit.id+' · '+found.unit.title,studentId,resourceId);
    return {ok:true};
+  }catch(e){return {ok:false,error:String(e.message||e)}}
+ });
+ ipcMain.handle('activity:status',(event,payload)=>{
+  const identity=activeChildren.get(event.sender.id);
+  if(!identity)return {ok:false,error:'Ventana no autorizada'};
+  try{
+   const match=/^(RA[1-7]\.[a-j])\/(\d{3})$/.exec(String(payload?.key??''));
+   if(!match)throw new Error('Identificador de actividad inválido');
+   const keys=candidateIds(identity.resourceId,match[1],Number(match[2]));
+   return {ok:true,authorized:keys.some(k=>db.hasGrant(identity.studentId,k))};
+  }catch(e){return {ok:false,error:String(e.message||e)}}
+ });
+ ipcMain.handle('activity:unlock',(event,payload)=>{
+  const identity=activeChildren.get(event.sender.id);
+  if(!identity)return {ok:false,error:'Ventana no autorizada'};
+  try{
+   const match=/^(RA[1-7]\.[a-j])\/(\d{3})$/.exec(String(payload?.key??''));
+   if(!match)throw new Error('Identificador de actividad inválido');
+   const keys=candidateIds(identity.resourceId,match[1],Number(match[2]));
+   if(keys.some(k=>db.hasGrant(identity.studentId,k)))return {ok:true};
+   let accepted=null,claim=null;
+   for(const k of keys){
+    try{
+     claim=verifyPermission(payload.code,fs.readFileSync(pubPath,'utf8'),{
+      studentId:identity.studentId,resourceId:k});
+     accepted=k;break;
+    }catch{}
+   }
+   if(!accepted||!claim)throw new Error('Código no válido para esta actividad, criterio o portafolio');
+   db.addGrant(identity.studentId,accepted,claim.nonce,claim.expiresAt);
+   return {ok:true,scope:accepted};
   }catch(e){return {ok:false,error:String(e.message||e)}}
  });
  ipcMain.handle('teacher:status',event=>{
@@ -179,7 +214,8 @@ function register(){
  });
  ipcMain.handle('teacher:issue',async(event,payload)=>{
   requiresTeacher(event);
-  const {studentId,resourceId,hours=48,passphrase}=payload||{};
+  const {studentId,resourceId,hours=48,passphrase,scope='recurso',ce=null,activity=null}=payload||{};
+  const scopedResource=scopedId(resourceId,scope,ce,activity===null?null:Number(activity));
   if(!studentOK(studentId)||!findAsset(resourceId))throw new Error('Alumno o recurso inválido');
   if(!Number.isSafeInteger(hours)||hours<1||hours>720)throw new Error('Duración: entre 1 y 720 horas');
   if(typeof passphrase!=='string'||passphrase.length===0)throw new Error('Indique la frase de paso de la clave privada docente');
@@ -191,14 +227,14 @@ function register(){
   if(stat.size>32000)throw new Error('El archivo de clave es demasiado grande');
   const privateKey=crypto.createPrivateKey({key:fs.readFileSync(choice.filePaths[0]),passphrase});
   const now=Date.now();
-  const claim={version:1,audience:'epe-fp360',studentId,resourceId,issuedAt:now,
+  const claim={version:1,audience:'epe-fp360',studentId,resourceId:scopedResource,issuedAt:now,
    expiresAt:now+hours*3600000,nonce:crypto.randomBytes(20).toString('hex')};
   const encoded=Buffer.from(JSON.stringify(claim)).toString('base64url');
   const signature=crypto.sign(null,Buffer.from(encoded,'utf8'),privateKey).toString('base64url');
   const token=encoded+'.'+signature;
   const publicKey=fs.existsSync(pubPath)?fs.readFileSync(pubPath,'utf8'):'';
-  verifyPermission(token,publicKey,{studentId,resourceId});
-  return {ok:true,code:token,expiresAt:claim.expiresAt};
+  verifyPermission(token,publicKey,{studentId,resourceId:scopedResource});
+  return {ok:true,code:token,expiresAt:claim.expiresAt,scopeResource:scopedResource};
  });
 }
 app.whenReady().then(()=>{
