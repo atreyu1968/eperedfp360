@@ -12,7 +12,7 @@ function evaluateRA(ra,entries=[],threshold=5){
  const ces=criteriaFor(ra);
  const grades=new Map();
  for(const item of entries){
-   if(!item || !item.validated || !Number.isFinite(Number(item.score)))continue;
+   if(!item || !item.validated || (typeof item.score!=='number'||!Number.isFinite(item.score)||item.score<0||item.score>10))continue;
    if(!ces.some(c=>c.id===item.ce))continue;
    const old=grades.get(item.ce);
    const at=Number(item.id||0);
