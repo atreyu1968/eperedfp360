@@ -5,6 +5,7 @@ function openDatabase(file){
  db.pragma('journal_mode = WAL');
  db.pragma('foreign_keys = ON');
  db.exec([
+  'CREATE TABLE IF NOT EXISTS settings (name TEXT PRIMARY KEY, value TEXT NOT NULL);',
   'CREATE TABLE IF NOT EXISTS students (id TEXT PRIMARY KEY, name TEXT NOT NULL DEFAULT "", created_at TEXT NOT NULL);',
   'CREATE TABLE IF NOT EXISTS grants (student_id TEXT NOT NULL, resource_id TEXT NOT NULL, nonce TEXT NOT NULL, expires_at INTEGER NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY(student_id,resource_id,nonce));',
   'CREATE UNIQUE INDEX IF NOT EXISTS idx_grants_nonce ON grants(nonce);',
@@ -17,9 +18,19 @@ function openDatabase(file){
   addGrant:db.prepare('INSERT INTO grants(student_id,resource_id,nonce,expires_at,created_at) VALUES (?,?,?,?,?)'),
   history:db.prepare('SELECT id,ce,score,instrument,mode,validated,at,note FROM grades WHERE student_id=? ORDER BY id ASC'),
   addGrade:db.prepare('INSERT INTO grades(student_id,ce,score,instrument,mode,validated,at,note) VALUES (?,?,?,?,?,?,?,?)'),
-  addRecovery:db.prepare('INSERT INTO recoveries(student_id,ce,assigned_at,status,teacher_note) VALUES (?,?,?,?,?)')
+  addRecovery:db.prepare('INSERT INTO recoveries(student_id,ce,assigned_at,status,teacher_note) VALUES (?,?,?,?,?)'),
+  getSetting:db.prepare('SELECT value FROM settings WHERE name=?'),
+  putSetting:db.prepare('INSERT INTO settings(name,value) VALUES (?,?) ON CONFLICT(name) DO UPDATE SET value=excluded.value'),
+  listRecoveries:db.prepare('SELECT id,student_id,ce,assigned_at,status,teacher_note FROM recoveries WHERE student_id=? ORDER BY id DESC'),
+  existsStudent:db.prepare('INSERT OR IGNORE INTO students(id,name,created_at) VALUES (?,?,?)'),
+  existingRecovery:db.prepare("SELECT 1 FROM recoveries WHERE student_id=? AND ce=? AND status='pendiente' LIMIT 1")
  };
  return {
+   getTeacherCredential:()=>p.getSetting.get('teacher_credential')?.value??null,
+   setTeacherCredential:credential=>p.putSetting.run('teacher_credential',credential),
+   ensureStudent:(id,name='')=>p.existsStudent.run(id,name,new Date().toISOString()),
+   listRecoveries:id=>p.listRecoveries.all(id),
+   hasPendingRecovery:(id,ce)=>!!p.existingRecovery.get(id,ce),
    hasGrant:(studentId,resourceId)=>!!p.hasGrant.get(studentId,resourceId,Date.now()),
    addGrant:(studentId,resourceId,nonce,expiresAt)=>p.addGrant.run(studentId,resourceId,nonce,expiresAt,new Date().toISOString()),
    getGrades:studentId=>p.history.all(studentId).map(x=>({...x,validated:!!x.validated})),
