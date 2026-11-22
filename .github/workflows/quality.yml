@@ -1,0 +1,34 @@
+name: Pruebas del núcleo EPE FP360
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Sintaxis de componentes y scripts
+        shell: bash
+        run: |
+          find src scripts tests -type f \( -name '*.cjs' -o -name '*.js' -o -name '*.mjs' \) -print0 |
+            while IFS= read -r -d '' file; do node --check "$file"; done
+      - name: Pruebas de evaluación, recuperación, importación y permisos
+        run: node --test tests/*.test.cjs
+      - name: Validación de currículo y recursos
+        shell: bash
+        run: |
+          node - <<'JS'
+          const m=require('./curriculum/manifest.json');
+          if(m.units.length!==7)throw new Error('Faltan unidades');
+          const ces=m.units.reduce((s,u)=>s+u.weights.length,0);
+          const resources=m.units.reduce((s,u)=>s+1+u.exams.length,0);
+          if(ces!==49||resources!==20)throw new Error('Currículo o catálogo incompleto');
+          if(m.units.some(u=>u.weights.reduce((s,n)=>s+n,0)!==100))throw new Error('Pesos incorrectos');
+          console.log('Validado:',m.units.length,'unidades,',ces,'criterios,',resources,'recursos');
+          JS
