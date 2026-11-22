@@ -21,4 +21,20 @@ function verifyCredential(password,stored){
   return crypto.timingSafeEqual(actual,expected);
  }catch{return false}
 }
-module.exports={passwordAcceptable,createCredential,verifyCredential};
+
+function verifyTeacherActivation(master,publicPem){
+ if(typeof master!=='string'||master.length<24||master.length>512
+   ||typeof publicPem!=='string'||!publicPem.includes('BEGIN PUBLIC KEY'))return false;
+ let seed,der;
+ try{
+  seed=crypto.scryptSync(master,'epe-fp360-teacher-ed25519-v1',32,
+   {N:16384,r:8,p:1,maxmem:64*1024*1024});
+  der=Buffer.concat([Buffer.from('302e020100300506032b657004220420','hex'),seed]);
+  const privateKey=crypto.createPrivateKey({key:der,format:'der',type:'pkcs8'});
+  const actual=crypto.createPublicKey(privateKey).export({format:'der',type:'spki'});
+  const expected=crypto.createPublicKey(publicPem).export({format:'der',type:'spki'});
+  return actual.length===expected.length&&crypto.timingSafeEqual(actual,expected);
+ }catch{return false}
+ finally{if(seed)seed.fill(0);if(der)der.fill(0)}
+}
+module.exports={passwordAcceptable,createCredential,verifyCredential,verifyTeacherActivation};
