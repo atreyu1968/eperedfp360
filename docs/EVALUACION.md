@@ -34,3 +34,11 @@ El informe permite detectar los CE con nota vigente inferior al umbral y los CE 
 ## Implementación
 
 Las funciones puras de evaluación están en `src/evaluation.cjs`; el historial se registra en SQLite. La integración automática de resultados a partir de los HTML originales necesita adaptadores por aplicación.
+
+## Entrada de calificaciones
+
+El panel permite notas docentes validadas por criterio y la importación de CSV de aplicaciones compatibles. Una nota calculada automáticamente no se impone como nota definitiva sin validación.
+
+El historial conserva calificaciones de evaluación ordinaria y de recuperación. En el prototipo se toma para cada CE la entrada validada más reciente; el profesor debe registrar la calificación final agregada del criterio cuando existan varios instrumentos.
+
+Una recuperación con una nota validada igual o superior a 5 cierra el estado «pendiente» del plan. El umbral y la regla concreta de superación se revisarán conforme a la programación aprobada del departamento.

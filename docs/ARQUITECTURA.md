@@ -29,3 +29,15 @@ Esta fase solo incluye el **lanzador y la infraestructura común**. Los HTML de 
 ## Estado
 
 Arquitectura de partida, todavía no versión final para realizar evaluaciones oficiales sin supervisión.
+
+## Límite de confianza del HTML de alumnado
+
+Los HTML originales contienen autocorrección y datos de preguntas; **no son criptográficamente secretos**. Un estudiante con acceso al sistema de archivos puede localizar el contenido, extraer datos o abrirlo fuera del lanzador. La firma Ed25519 acredita las autorizaciones que el lanzador verifica, pero no impide ese bypass del contenido.
+
+No almacenar claves privadas en el paquete ni generar certificados de validez «para todo el curso» compartibles. La revocación entre equipos y el bloqueo absoluto de intentos requieren servidor o control presencial. Es indispensable introducir adaptadores por actividad interna antes de presentar el proyecto como control granular final.
+
+## Acceso a calificaciones
+
+Los IPC de notas y recuperación se protegen comprobando la ventana del lanzador y una sesión docente local activa. Las hojas CSV se previsualizan antes de registrar notas, y la aprobación se ejecuta en una transacción SQLite con prevención de duplicados.
+
+El profesor tiene que validar la identidad del alumno y la procedencia de la evidencia; un CSV local, aunque tenga SHA-256, puede haberse modificado. La huella permite detectar la repetición de un mismo archivo, **no demostrar su autenticidad**.

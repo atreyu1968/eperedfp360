@@ -4,7 +4,7 @@ Aplicación de escritorio para **Empresa en el Aula (0446)**, CFGM Gestión Admi
 
 ## Estado
 
-**Fase inicial de integración.** Este repositorio se ha destinado a la aplicación unificada. No hay todavía un ejecutable Windows publicado ni se ha realizado una auditoría de seguridad. El desarrollo se estructura para integrar las 7 unidades y las 20 aplicaciones HTML ya elaboradas, sin publicar soluciones docentes por accidente.
+**Fase 2: panel docente, recuperación e importación CSV desarrollados a nivel de código fuente.** Este repositorio se ha destinado a la aplicación unificada. No hay todavía un ejecutable Windows publicado ni se ha realizado una auditoría de seguridad. El desarrollo se estructura para integrar las 7 unidades y las 20 aplicaciones HTML ya elaboradas, sin publicar soluciones docentes por accidente.
 
 ## Alcance del proyecto
 
@@ -43,3 +43,17 @@ Los HTML originales son aplicaciones autónomas. Su integración en un lanzador 
 6. Publicación de portable Windows mediante GitHub Actions.
 
 Consulta `docs/ARQUITECTURA.md` y `docs/EVALUACION.md` al incorporar esos componentes.
+
+## Avance 22/11/2026: panel docente
+
+- Configuración inicial y acceso con contraseña local protegida con scrypt.
+- Consulta del expediente por alumno, RA y CE, con distinción entre «pendiente» y «sin evaluar».
+- Registro de calificaciones ordinarias o de recuperación, sin borrar el historial.
+- Asignación de planes de recuperación por criterio y validación docente.
+- Emisión de autorizaciones Ed25519 mediante clave privada externa y cifrada.
+- Previsualización de CSV exportados por portafolios originales (UD1, UD2, UD5, UD6, UD7) y examen UD4. La importación solo se incorpora tras confirmación expresa del docente; hay deduplicación por SHA-256.
+- Batería de pruebas de lógica (currículo, evaluación, importación y criptografía) y flujo de calidad GitHub Actions.
+
+**Contenido:** para no publicar bancos de respuestas en abierto, los 20 HTML originales se aportan mediante ZIP separado. Pueden importarse con `npm run import:content -- --source=...`.
+
+**Limitaciones:** la compilación Windows sigue sin verificarse. La autorización actual habilita un HTML completo; el bloqueo de **cada actividad dentro de ese HTML** y la integración automática de resultados de todos los formatos requieren adaptadores específicos. El CSV no tiene firma verificable y puede alterarse antes de importarse. El profesor debe contrastarlo.
