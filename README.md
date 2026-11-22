@@ -4,7 +4,7 @@ Aplicación de escritorio para **Empresa en el Aula (0446)**, CFGM Gestión Admi
 
 ## Estado
 
-**Fase 2: panel docente, recuperación e importación CSV desarrollados a nivel de código fuente.** Este repositorio se ha destinado a la aplicación unificada. No hay todavía un ejecutable Windows publicado ni se ha realizado una auditoría de seguridad. El desarrollo se estructura para integrar las 7 unidades y las 20 aplicaciones HTML ya elaboradas, sin publicar soluciones docentes por accidente.
+**Fase 3: panel docente, recuperación, importación CSV y autorización granular de actividades implementados a nivel de código fuente.** Este repositorio se ha destinado a la aplicación unificada. No hay todavía un ejecutable Windows publicado ni se ha realizado una auditoría de seguridad. El desarrollo se estructura para integrar las 7 unidades y las 20 aplicaciones HTML ya elaboradas, sin publicar soluciones docentes por accidente.
 
 ## Alcance del proyecto
 
@@ -57,3 +57,18 @@ Consulta `docs/ARQUITECTURA.md` y `docs/EVALUACION.md` al incorporar esos compon
 **Contenido:** para no publicar bancos de respuestas en abierto, los 20 HTML originales se aportan mediante ZIP separado. Pueden importarse con `npm run import:content -- --source=...`.
 
 **Limitaciones:** la compilación Windows sigue sin verificarse. La autorización actual habilita un HTML completo; el bloqueo de **cada actividad dentro de ese HTML** y la integración automática de resultados de todos los formatos requieren adaptadores específicos. El CSV no tiene firma verificable y puede alterarse antes de importarse. El profesor debe contrastarlo.
+
+## Avance de fase 3: permisos de actividades
+
+El código ahora puede autorizar un portafolio completo, un criterio o una actividad individual de cualquiera de los siete RA. Los adaptadores de interfaz cubren los formatos de UD1–UD7; un token firmado por criterio o actividad abre también el recurso correspondiente sin necesitar otro token.
+
+- Alcance docente: recurso, portafolio, criterio y actividad.
+- Verificación offline Ed25519.
+- Sesiones de navegador aisladas por identificador de alumno.
+- Comprobación de actividades visibles y bloqueo sobre la interfaz, incluido el modo pantalla completa.
+- Pruebas de currículo para los 2.552 IDs de actividad y detección de los siete formatos.
+- Compilación Windows de vista previa automatizada en GitHub Actions.
+
+La garantía es **disuasoria**, no anticopia: los HTML son ficheros locales y no impiden que alguien acceda a su código fuera del lanzador. Los códigos y las contraseñas no sustituyen la supervisión.
+
+No se han integrado aún físicamente los 20 HTML en el repositorio público: se importan desde el paquete ZIP de contenido entregado por separado.
