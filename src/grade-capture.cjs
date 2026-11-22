@@ -33,7 +33,9 @@ const CAPTURE_SOURCE = String.raw`(() => {
     return {
       version:1,
       variant,
-      sessionId:String(state.sessionId || state.id || state.attemptId || '').slice(0,128),
+      sessionId:String(state.sessionId || state.id || state.attemptId ||
+        (Number.isFinite(state.seed) && state.startedAt ?
+        'RA3-'+String(state.seed)+'-'+Date.parse(state.startedAt).toString(36) : '')).slice(0,128),
       finalizedAt: String(state.finalizedAt || state.finishedAt || '').slice(0,50),
       claimedStudent:String(student.code || student.id || '').slice(0,100),
       claimedName:String(student.name || '').slice(0,150),
