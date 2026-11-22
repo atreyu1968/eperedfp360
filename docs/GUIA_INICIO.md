@@ -42,3 +42,26 @@ Los CSV de portafolio de las unidades 1, 2, 5, 6 y 7, y el CSV del examen UD4, p
 El repositorio **no incluye los 20 archivos HTML**: cada HTML local incorpora su lógica y sus respuestas, por lo que publicarlo en GitHub haría muy fácil distribuir el banco. Utilice el ZIP separado `EPE_FP360_20_APLICACIONES_ALUMNADO_IMPORTACION.zip` y descomprímalo dentro del repositorio, conservando la estructura `content/ud1` … `content/ud7`.
 
 La salida GitHub Actions de «Compilar portable Windows (vista previa)», cuando se ejecute, es solo una versión sin esos contenidos. Compile la edición completa en un equipo Windows tras importar los 20 HTML y configurar la clave pública.
+
+## Desbloqueos granulares: actividades individuales (fase 3)
+
+Los portafolios cuentan con un adaptador que detecta la actividad visible y muestra una superposición cuando falta autorización. La supervisión sigue siendo necesaria porque los HTML contienen sus propios ejercicios y autocorrección.
+
+**Secuencia recomendada:**
+
+1. El profesor configura la clave pública y conserva la clave privada cifrada fuera del equipo del alumno.
+2. En «Panel del profesorado», identifica al estudiante y selecciona el portafolio de la unidad.
+3. En «Ámbito del desbloqueo», elige **Portafolio**, **Criterio** o **Actividad individual**; selecciona el CE y el número cuando proceda.
+4. Emite el código firmado y se lo proporciona al estudiante. El mismo código sirve para abrir el portafolio y acceder al ámbito autorizado.
+5. Las demás actividades permanecen bloqueadas por el adaptador. Un permiso de portafolio completo autoriza todas.
+
+**Ejemplos con línea de comandos, para profesores avanzados:**
+
+- Abrir una prueba objetiva: \`node scripts/issue-permission.mjs --student=GA2-015 --resource=UD3-EXAMEN-100 --hours=2\`
+- Autorizar un criterio completo: \`node scripts/issue-permission.mjs --student=GA2-015 --resource=UD3-PORTAFOLIO --scope=criterio --ce=RA3.a --hours=48\`
+- Autorizar actividad individual: \`node scripts/issue-permission.mjs --student=GA2-015 --resource=UD4-PORTAFOLIO --scope=actividad --ce=RA4.g --activity=56 --hours=48\`
+- Autorizar portafolio completo: \`node scripts/issue-permission.mjs --student=GA2-015 --resource=UD4-PORTAFOLIO --scope=portafolio --hours=48\`
+
+La aplicación presenta una casilla para pegar el código cuando una actividad está bloqueada. Los códigos firmados son largos deliberadamente; no son simples PIN de seis dígitos, ya que el alumno podría deducirlos o falsificarlos si compartieran una clave secreta incrustada en el ejecutable.
+
+**Límites actuales:** el bloqueo sucede en la interfaz Electron cuando el alumno usa el lanzador; no impide inspeccionar un HTML local ni modificar un archivo en un equipo sin supervisión. La integridad de respuestas y la imposibilidad de repetición entre ordenadores requieren una solución centralizada o mecanismos de evaluación supervisada.
