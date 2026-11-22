@@ -64,6 +64,13 @@
    <button id="teacherCreateCode" type="button" class="subtle">Seleccionar clave y generar código</button>
    <label for="teacherIssuedCode">Código emitido</label><textarea id="teacherIssuedCode" rows="3" readonly placeholder="Se mostrará aquí tras emitir la autorización"></textarea>
   </article>
+<article class="inset token-block">
+  <h3>Recepción de calificaciones desde aplicaciones originales</h3>
+  <p class="small">Seleccione el CSV de resultados descargado por el alumno. Se aceptan los CSV de portafolio de las UD1, UD2, UD5, UD6 y UD7, y el CSV de examen UD4. El archivo no incorpora una identidad verificable: confirme el estudiante y todas las notas antes de validar.</p>
+  <button class="subtle" id="teacherCsvPreview" type="button">Seleccionar CSV y revisar las calificaciones</button>
+  <div class="report" id="teacherCsvPreviewArea" hidden></div>
+  <button class="primary" id="teacherCsvApprove" type="button" disabled>Validar e incorporar calificaciones revisadas</button>
+</article>
   <div id="teacherResults" class="report"></div>
  </div>
 </section>
