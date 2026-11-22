@@ -8,7 +8,7 @@ function openDatabase(file){
   'CREATE TABLE IF NOT EXISTS students (id TEXT PRIMARY KEY, name TEXT NOT NULL DEFAULT "", created_at TEXT NOT NULL);',
   'CREATE TABLE IF NOT EXISTS grants (student_id TEXT NOT NULL, resource_id TEXT NOT NULL, nonce TEXT NOT NULL, expires_at INTEGER NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY(student_id,resource_id,nonce));',
   'CREATE UNIQUE INDEX IF NOT EXISTS idx_grants_nonce ON grants(nonce);',
-  'CREATE TABLE IF NOT EXISTS grades (id INTEGER PRIMARY KEY AUTOINCREMENT, student_id TEXT NOT NULL, ce TEXT NOT NULL, score REAL NOT NULL CHECK(score>=0 AND score<=10), instrument TEXT NOT NULL, mode TEXT NOT NULL CHECK(mode IN ("ordinaria","recuperacion")), validated INTEGER NOT NULL DEFAULT 0, at TEXT NOT NULL, note TEXT NOT NULL DEFAULT "");',
+  'CREATE TABLE IF NOT EXISTS grades (id INTEGER PRIMARY KEY AUTOINCREMENT, student_id TEXT NOT NULL, ce TEXT NOT NULL, score REAL NOT NULL CHECK(score>=0 AND score<=10), instrument TEXT NOT NULL, mode TEXT NOT NULL CHECK(mode IN (\'ordinaria\',\'recuperacion\')), validated INTEGER NOT NULL DEFAULT 0, at TEXT NOT NULL, note TEXT NOT NULL DEFAULT "");',
   'CREATE INDEX IF NOT EXISTS idx_grades_student ON grades(student_id,ce,id);',
   'CREATE TABLE IF NOT EXISTS recoveries (id INTEGER PRIMARY KEY AUTOINCREMENT, student_id TEXT NOT NULL, ce TEXT NOT NULL, assigned_at TEXT NOT NULL, status TEXT NOT NULL DEFAULT "pendiente", teacher_note TEXT NOT NULL DEFAULT "");'
  ].join('\n'));
