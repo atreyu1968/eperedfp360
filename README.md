@@ -85,3 +85,19 @@ Las 20 aplicaciones HTML originales se autocorrigen en el navegador integrado. T
 Guía completa: [docs/ENTREGAS_AUTOMATICAS.md](docs/ENTREGAS_AUTOMATICAS.md).
 
 Los veinte archivos originales siguen importándose desde un ZIP separado; los bancos docentes no se incluyen en el repositorio público.
+
+## Compilar Windows desde GitHub (sin instalar nada localmente)
+
+Se ha incorporado un flujo de **compilación completa automatizada** que importa las siete unidades y genera el portable Windows desde GitHub Actions.
+
+**[Guía: compilación directa en GitHub](docs/COMPILACION_DIRECTA_GITHUB.md)**
+
+1. Convierte este repositorio en **privado** antes de subir contenido autocorregible.
+2. Añade una vez el secreto \`EPE_FP360_MASTER_SECRET\` en GitHub Actions Secrets.
+3. Sube una vez \`assets/EPE_FP360_20_APLICACIONES_ALUMNADO_IMPORTACION.zip\` (el ZIP original descargado de la conversación).
+4. GitHub Actions **compila automáticamente** al subir ese ZIP. También puedes recompilar cuando quieras desde Actions → EPE FP360 · Windows COMPLETO con 7 unidades → Run workflow.
+5. Descarga **por separado** el ZIP con el EXE completo y el archivo \`private.pem\` cifrado del docente.
+
+La clave privada no se distribuye con el ejecutable; la contraseña maestra sigue fuera de GitHub. En el primer arranque se necesita esa contraseña para activar el perfil docente.
+
+**Advertencia:** a fecha de esta guía el repositorio aún es público y no incluye el ZIP de los 20 HTML. La compilación **completa** no ha podido ejecutarse hasta que el propietario haga privados el repositorio y los contenidos y configure la clave maestra; el flujo se detiene intencionadamente si detecta el repositorio público.
